@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0b0b0f;
+  --background-elev: #13131a;
+  --background-elev-2: #1b1b25;
+  --foreground: #ededf0;
+  --muted: #8a8a94;
+  --border: #26262f;
+  --accent: #8b5cf6;
+  --accent-foreground: #ffffff;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-background-elev: var(--background-elev);
+  --color-background-elev-2: var(--background-elev-2);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+*::selection {
+  background: color-mix(in oklab, var(--accent) 35%, transparent);
+}
+
+/* Thin, quiet scrollbars everywhere */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 8px;
+}

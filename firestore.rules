@@ -1,0 +1,101 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Sites: opaque hidden-volume blobs keyed by SHA-256 of the slug.
+    match /sites/{siteId} {
+      allow read: if true;
+
+      allow create: if isValidCreate(request.resource.data);
+
+      allow update: if isValidUpdate(resource.data, request.resource.data);
+
+      allow delete: if false;
+    }
+
+    // Timelock capsules: ciphertext encrypted to a future drand round.
+    // Anyone can create; reads are public (client-side decryption once the
+    // beacon round releases). Updates are forbidden.
+    match /timelocks/{capsuleId} {
+      allow read: if true;
+      allow create: if isValidTimelock(request.resource.data);
+      allow update, delete: if false;
+    }
+  }
+
+  function isValidCreate(d) {
+    return d.keys().hasAll([
+            'ciphertext', 'kdfSalt', 'kdfParams', 'volume',
+            'version', 'createdAt', 'updatedAt'
+          ])
+        && !d.keys().hasAny(['deadman'])  // deadman is configured post-create
+        && d.version == 1
+        && d.ciphertext is bytes
+        && d.ciphertext.size() <= 1048576
+        && d.kdfSalt is bytes
+        && d.kdfSalt.size() >= 16 && d.kdfSalt.size() <= 64
+        && d.kdfParams is map
+        && d.kdfParams.algorithm == 'argon2id'
+        && d.volume is map
+        && d.volume.slotCount is int
+        && d.volume.slotSize is int
+        && d.volume.slotCount * d.volume.slotSize == d.ciphertext.size();
+  }
+
+  function isValidUpdate(oldD, newD) {
+    return newD.version == oldD.version + 1
+        && newD.ciphertext is bytes
+        && newD.ciphertext.size() == oldD.ciphertext.size()
+        && newD.kdfSalt == oldD.kdfSalt
+        && newD.kdfParams == oldD.kdfParams
+        && newD.volume == oldD.volume
+        && newD.createdAt == oldD.createdAt
+        && isValidDeadmanTransition(oldD, newD);
+  }
+
+  // Deadman state machine the client is allowed to drive:
+  //   absent              -> absent (normal save)
+  //   absent              -> configured (configure)
+  //   configured          -> configured (heartbeat OR replace)
+  //   configured          -> absent (disable)
+  //   released            -> released (frozen — no client writes at all)
+  //
+  // Clients can never set released=true or releasedAt; only the
+  // deadmanSweep Cloud Function (Admin SDK, bypasses rules) can.
+  function isValidDeadmanTransition(oldD, newD) {
+    let oldHas = oldD.keys().hasAny(['deadman']);
+    let newHas = newD.keys().hasAny(['deadman']);
+    let wasReleased = oldHas && oldD.deadman.released == true;
+    return !wasReleased
+        && (!newHas || isValidDeadmanShape(newD.deadman));
+  }
+
+  function isValidDeadmanShape(dm) {
+    return dm is map
+        && dm.keys().hasAll([
+             'wrappedKey', 'beneficiarySalt',
+             'intervalMs', 'graceMs', 'lastHeartbeatAt', 'released'
+           ])
+        && dm.wrappedKey is bytes
+        && dm.wrappedKey.size() >= 28 && dm.wrappedKey.size() <= 256
+        && dm.beneficiarySalt is bytes
+        && dm.beneficiarySalt.size() >= 16 && dm.beneficiarySalt.size() <= 64
+        && dm.intervalMs is int
+        && dm.intervalMs >= 60000              // at least 1 minute
+        && dm.intervalMs <= 31536000000        // at most 1 year
+        && dm.graceMs is int
+        && dm.graceMs >= 0
+        && dm.graceMs <= 31536000000
+        && dm.released == false;               // clients may never set true
+  }
+
+  function isValidTimelock(d) {
+    return d.keys().hasAll(['ciphertext', 'round', 'chainHash', 'createdAt'])
+        && d.ciphertext is bytes
+        && d.ciphertext.size() <= 262144
+        && d.round is int
+        && d.round > 0
+        && d.chainHash is string;
+  }
+}

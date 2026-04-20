@@ -1,0 +1,93 @@
+name: Deploy Firebase backend
+
+# Vercel handles the Next.js frontend via its GitHub integration.
+# This workflow covers what Vercel does NOT: the Firebase side of the
+# stack — Cloud Functions (dead-man's-switch sweep), Firestore security
+# rules, and Firestore indexes. It runs on every push to main plus a
+# manual dispatch button.
+#
+# Required repository secrets:
+#   FIREBASE_SERVICE_ACCOUNT   A service-account JSON with roles:
+#                              - Cloud Functions Admin
+#                              - Firebase Rules Admin
+#                              - Service Account User
+#                              - Cloud Datastore Index Admin (for indexes)
+#                              - Artifact Registry Writer (first deploy only)
+#                              Paste the whole JSON blob as the secret value.
+#
+# Required repository variables:
+#   FIREBASE_PROJECT_ID        e.g. "flowvault-prod"
+#
+# Vercel env vars (NEXT_PUBLIC_*) do not belong here — they live in
+# Vercel's own project settings.
+
+on:
+  push:
+    branches: [main]
+    # Only redeploy when backend files actually change. Prevents wasting
+    # a deploy on a README-only or frontend-only commit.
+    paths:
+      - "functions/**"
+      - "firestore.rules"
+      - "firestore.indexes.json"
+      - "firebase.json"
+      - ".firebaserc"
+      - ".github/workflows/deploy-firebase.yml"
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: "Comma-separated deploy targets"
+        required: false
+        default: "functions,firestore:rules,firestore:indexes"
+
+concurrency:
+  group: deploy-firebase-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Firebase
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://console.firebase.google.com/project/${{ vars.FIREBASE_PROJECT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install function dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Build functions
+        working-directory: functions
+        run: npm run build
+
+      - name: Authenticate with Google Cloud
+        id: auth
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/gcp-key.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/gcp-key.json" >> "$GITHUB_ENV"
+
+      - name: Deploy Firebase backend
+        run: |
+          TARGETS="${{ github.event.inputs.targets }}"
+          if [ -z "$TARGETS" ]; then
+            TARGETS="functions,firestore:rules,firestore:indexes"
+          fi
+          npx --yes firebase-tools@latest deploy \
+            --only "$TARGETS" \
+            --project "${{ vars.FIREBASE_PROJECT_ID }}" \
+            --non-interactive \
+            --force
+
+      - name: Clean up credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/gcp-key.json"

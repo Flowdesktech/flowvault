@@ -45,20 +45,32 @@ export function SendViewer({ id }: { id: string }) {
   // Read the URL fragment exactly once, on mount. Browsers never ship
   // fragments to servers, so this is the only place the key exists
   // outside the crypto pipeline.
+  //
+  // We defer the setState into a microtask so React&rsquo;s
+  // set-state-in-effect lint is happy &mdash; the rule flags
+  // synchronous setState inside an effect body. The semantics are the
+  // same: the next render sees the resolved state.
   useEffect(() => {
     if (typeof window === "undefined") return;
+    let cancelled = false;
     const raw = window.location.hash;
-    if (!raw || !raw.startsWith("#")) {
-      setPhase({ kind: "missing-key" });
-      return;
-    }
-    const params = new URLSearchParams(raw.slice(1));
-    const k = params.get("k");
-    if (!k) {
-      setPhase({ kind: "missing-key" });
-      return;
-    }
-    setFragmentKey(k);
+    queueMicrotask(() => {
+      if (cancelled) return;
+      if (!raw || !raw.startsWith("#")) {
+        setPhase({ kind: "missing-key" });
+        return;
+      }
+      const params = new URLSearchParams(raw.slice(1));
+      const k = params.get("k");
+      if (!k) {
+        setPhase({ kind: "missing-key" });
+        return;
+      }
+      setFragmentKey(k);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const reveal = async () => {

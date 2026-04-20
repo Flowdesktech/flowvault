@@ -7,7 +7,7 @@ import { DONATE_PATH, APP_URL } from "@/lib/config";
 const FAQ_TITLE =
   "FAQ — Flowvault: encrypted online notepad, dead-man's switch, time-locked notes, Encrypted Send; ProtectedText / Standard Notes / CryptPad / Privnote / Bitwarden Send alternative";
 const FAQ_DESCRIPTION =
-  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how the dead-man's switch releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, how Encrypted Send creates self-destructing one-time links with view caps and optional passwords, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, Notesnook, Joplin, Obsidian, Bitwarden Send, 1Password Share, and Skiff Notes.";
+  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how the dead-man's switch releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, how Encrypted Send creates self-destructing one-time links with view caps and optional passwords, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, OneTimeSecret, PrivateBin, Yopass, Notesnook, Joplin, Obsidian, Bitwarden Send, 1Password Share, and Skiff Notes.";
 
 export const metadata: Metadata = {
   title: FAQ_TITLE,
@@ -19,6 +19,9 @@ export const metadata: Metadata = {
     "Standard Notes alternative",
     "CryptPad alternative",
     "Privnote alternative",
+    "OneTimeSecret alternative",
+    "PrivateBin alternative",
+    "Yopass alternative",
     "Bitwarden Send alternative",
     "1Password Share alternative",
     "dead man's switch notepad",
@@ -193,18 +196,47 @@ const VS_PROTECTED_TEXT: QA[] = [
     ),
   },
   {
-    q: "How does Flowvault compare to Privnote and other burn-after-reading services?",
+    q: "How does Flowvault compare to Privnote, OneTimeSecret, PrivateBin, and other burn-after-reading services?",
     a: (
       <>
-        <Strong>Privnote</Strong> (and similar &mdash; PrivateBin, Yopass,
-        OneTimeSecret) are great for sending a single secret that
-        self-destructs after one read. They are <em>not</em> persistent
-        notepads. You write once, the recipient reads once, the link dies.
+        Flowvault now does both &mdash; long-lived notebooks{" "}
+        <em>and</em> one-shot self-destructing links &mdash; so you
+        don&apos;t have to pick a second tool.
+        <ul className="mt-3 list-disc space-y-1 pl-5">
+          <li>
+            For the persistent side (the notepad you return to for
+            years), Flowvault uniquely offers{" "}
+            <Strong>plausible-deniability hidden volumes</Strong>:
+            multiple passwords on the same URL unlock different
+            notebooks. Privnote, OneTimeSecret, PrivateBin, and Yopass
+            don&apos;t do persistence at all.
+          </li>
+          <li>
+            For the one-shot side (a password for a colleague, a
+            recovery phrase, an API key),{" "}
+            <Link href="/send/new" className="text-accent hover:underline">
+              Encrypted Send
+            </Link>{" "}
+            is Flowvault&apos;s direct answer. AES-256-GCM in the
+            browser, key in the URL fragment, server-enforced view cap
+            (default 1) with atomic hard-delete, optional Argon2id
+            password gate on top, expiry up to 30 days, and the whole
+            stack is open source end-to-end (frontend + Cloud Functions
+            + Firestore rules). See the full comparison table on the{" "}
+            <Link href="/" className="text-accent hover:underline">
+              homepage
+            </Link>
+            .
+          </li>
+        </ul>
         <p className="mt-3">
-          Flowvault is the opposite: a persistent notepad you come back to
-          for years. If you need to share a one-shot password with a
-          colleague, use Privnote or PrivateBin. If you need a private place
-          to keep notes, drafts, or to-dos forever, use Flowvault.
+          The short version: use Privnote/OneTimeSecret if you&apos;re
+          already there, use{" "}
+          <Link href="/send/new" className="text-accent hover:underline">
+            /send/new
+          </Link>{" "}
+          if you want an account-less, open-source alternative that
+          lives next to your long-lived vault.
         </p>
       </>
     ),
@@ -266,21 +298,39 @@ const VS_PROTECTED_TEXT: QA[] = [
     ),
   },
   {
-    q: "How does Flowvault compare to Bitwarden Send / Bitwarden Notes / 1Password Secure Notes?",
+    q: "How does Flowvault compare to Bitwarden Send / Bitwarden Notes / 1Password Secure Notes / 1Password Share?",
     a: (
       <>
         Password managers&apos; secure-notes features are excellent for
-        short, structured secrets attached to a credential (license keys,
-        recovery codes, one-line answers). They live inside an account
-        protected by a master password and your device&apos;s vault.
-        <Strong>Bitwarden Send</Strong> is for ephemeral one-off shares,
-        similar to Privnote.
-        <p className="mt-3">
-          Flowvault is for free-form text you want to keep coming back to,
-          without an account, without installing anything, and with the
-          option to hide some of it behind a decoy. Use both: passwords go
-          in a password manager, free-form notes go in Flowvault.
-        </p>
+        short, structured secrets attached to a credential (license
+        keys, recovery codes, one-line answers). They live inside an
+        account protected by a master password and your device&apos;s
+        vault. Two separate comparisons here:
+        <ul className="mt-3 list-disc space-y-1 pl-5">
+          <li>
+            <Strong>Bitwarden Send / 1Password Share</Strong>{" "}
+            (ephemeral one-off shares). Flowvault now ships{" "}
+            <Link href="/send/new" className="text-accent hover:underline">
+              Encrypted Send
+            </Link>
+            , which plays in this exact lane &mdash; and unlike
+            Bitwarden Send / 1Password Share, it doesn&apos;t require
+            an account on the <em>sender&apos;s</em> side and the
+            entire stack (frontend, Cloud Functions, Firestore rules)
+            is open source in a single repo. Password gate, URL-fragment
+            key, atomic server-enforced view cap &mdash; same
+            threat-model promises.
+          </li>
+          <li>
+            <Strong>Bitwarden Notes / 1Password Secure Notes</Strong>{" "}
+            (persistent notes inside a password manager). Flowvault is
+            for free-form text you want to keep coming back to, without
+            an account, without installing anything, and with the
+            option to hide some of it behind a decoy password. Use
+            both: structured credentials in your password manager,
+            free-form scratch + deniable notebooks in Flowvault.
+          </li>
+        </ul>
       </>
     ),
   },

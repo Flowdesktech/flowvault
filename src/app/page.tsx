@@ -222,6 +222,11 @@ export default function HomePage() {
               title="Published threat model"
               body="We tell you honestly what we can and cannot defend against — including the cases where plausible deniability is weaker. No hand-waving."
             />
+            <Reason
+              icon={<Send size={16} />}
+              title="Self-destructing Encrypted Send"
+              body="A Bitwarden-Send / Privnote-style one-shot link, but account-less and open source end-to-end. The AES-256 key lives in the URL fragment (never reaches our servers), views are enforced by a Cloud Function that hard-deletes the bytes on the last read, and an optional password adds a second gate even if the link leaks."
+            />
           </div>
         </section>
 
@@ -327,6 +332,120 @@ export default function HomePage() {
           <p className="mt-3 text-center text-xs text-muted">
             Comparison reflects ProtectedText&apos;s publicly documented
             behavior at time of writing. Corrections welcome via GitHub.
+          </p>
+        </section>
+
+        {/* ---------------------------------------------------------------- */}
+        <section className="mt-20">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              Encrypted Send vs. Privnote, Bitwarden Send, 1Password Share
+            </h2>
+            <p className="mt-3 text-sm text-muted">
+              Burn-after-reading links aren&apos;t new; Flowvault&apos;s take
+              is to make one that&apos;s account-less, open source end-to-end,
+              and lives alongside your long-lived vault and time-locks under a
+              single URL.
+            </p>
+          </div>
+
+          <div className="mt-8 overflow-x-auto rounded-2xl border border-border">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead className="bg-background-elev-2 text-left text-xs uppercase tracking-wider text-muted">
+                <tr>
+                  <th className="px-4 py-3">Property</th>
+                  <th className="px-4 py-3 text-accent">Flowvault Send</th>
+                  <th className="px-4 py-3">Privnote</th>
+                  <th className="px-4 py-3">Bitwarden Send</th>
+                  <th className="px-4 py-3">1Password Share</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border bg-background-elev">
+                <SendRow
+                  label="Open source end-to-end"
+                  ours="Yes — frontend, Cloud Functions, and Firestore rules all in one public repo"
+                  privnote="No — server is closed; only inspectable client JS"
+                  bitwarden="Partial — Bitwarden clients and server are open, but the hosted service runs their own infrastructure"
+                  onepassword={<X className="inline" size={14} />}
+                />
+                <SendRow
+                  label="Account-less for the sender"
+                  ours={<Check className="inline text-success" size={14} />}
+                  privnote={<Check className="inline text-success" size={14} />}
+                  bitwarden={<X className="inline" size={14} />}
+                  onepassword={<X className="inline" size={14} />}
+                  invertFirstTwo
+                />
+                <SendRow
+                  label="Self-hostable"
+                  ours={<Check className="inline text-success" size={14} />}
+                  privnote={<X className="inline" size={14} />}
+                  bitwarden="Yes (Vaultwarden or official self-host)"
+                  onepassword={<X className="inline" size={14} />}
+                />
+                <SendRow
+                  label="Encryption"
+                  ours="AES-256-GCM (authenticated)"
+                  privnote="AES (CBC in public docs; unauthenticated)"
+                  bitwarden="AES-256-CBC with HMAC"
+                  onepassword="AES-256-GCM"
+                />
+                <SendRow
+                  label="Decryption key location"
+                  ours="URL fragment (#k=…); server never sees it"
+                  privnote="URL fragment"
+                  bitwarden="URL fragment"
+                  onepassword="URL fragment"
+                />
+                <SendRow
+                  label="Optional password on top of link"
+                  ours="Yes (Argon2id + AES-GCM, same FVPW frame as time-locks)"
+                  privnote="Paid tier only"
+                  bitwarden={<Check className="inline text-success" size={14} />}
+                  onepassword={<Check className="inline text-success" size={14} />}
+                />
+                <SendRow
+                  label="Server-enforced view cap (atomic hard-delete)"
+                  ours="Yes — Cloud Function transaction deletes on last view"
+                  privnote="Yes (default 1 view)"
+                  bitwarden="Yes"
+                  onepassword="Yes"
+                />
+                <SendRow
+                  label="Max lifetime"
+                  ours="30 days"
+                  privnote="30 days"
+                  bitwarden="31 days"
+                  onepassword="30 days (14 on lower tiers)"
+                />
+                <SendRow
+                  label="File attachments"
+                  ours="Text only (on the roadmap)"
+                  privnote="Text only"
+                  bitwarden="Paid tier"
+                  onepassword={<Check className="inline text-success" size={14} />}
+                />
+                <SendRow
+                  label="Price"
+                  ours="Free"
+                  privnote="Free + paid tier"
+                  bitwarden="Free (text) · paid for files / advanced options"
+                  onepassword="Requires paid 1Password subscription"
+                />
+                <SendRow
+                  label="Lives next to a long-lived zero-knowledge vault + time-locked notes"
+                  ours={<Check className="inline text-success" size={14} />}
+                  privnote={<X className="inline" size={14} />}
+                  bitwarden="Password manager, not a notepad"
+                  onepassword="Password manager, not a notepad"
+                />
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-center text-xs text-muted">
+            Comparison reflects publicly documented behavior of each
+            service at time of writing. Corrections and additions welcome
+            via GitHub.
           </p>
         </section>
 
@@ -529,6 +648,49 @@ function Row({
         {ours}
       </td>
       <td className="px-4 py-3 text-muted">{theirs}</td>
+    </tr>
+  );
+}
+
+/**
+ * Row for the 4-column Encrypted Send comparison. The `invertFirstTwo`
+ * flag flips the emphasis styling on the first two cells, used for
+ * rows where Flowvault + Privnote both score the good-for-user answer
+ * (e.g. &ldquo;no account required&rdquo;) and Bitwarden/1Password
+ * don&apos;t.
+ */
+function SendRow({
+  label,
+  ours,
+  privnote,
+  bitwarden,
+  onepassword,
+  invertFirstTwo,
+}: {
+  label: string;
+  ours: React.ReactNode;
+  privnote: React.ReactNode;
+  bitwarden: React.ReactNode;
+  onepassword: React.ReactNode;
+  invertFirstTwo?: boolean;
+}) {
+  return (
+    <tr>
+      <td className="px-4 py-3 align-top text-muted">{label}</td>
+      <td className="px-4 py-3 align-top font-medium text-foreground">
+        {ours}
+      </td>
+      <td
+        className={
+          invertFirstTwo
+            ? "px-4 py-3 align-top font-medium text-foreground"
+            : "px-4 py-3 align-top text-muted"
+        }
+      >
+        {privnote}
+      </td>
+      <td className="px-4 py-3 align-top text-muted">{bitwarden}</td>
+      <td className="px-4 py-3 align-top text-muted">{onepassword}</td>
     </tr>
   );
 }

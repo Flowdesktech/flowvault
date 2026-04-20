@@ -1,13 +1,37 @@
+import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
-import { DONATE_ADDRESSES, GITHUB_URL } from "@/lib/config";
+import { APP_URL, DONATE_ADDRESSES, GITHUB_URL } from "@/lib/config";
 import { AddressCard } from "@/components/donate/AddressCard";
 import { Heart, Shield, EyeOff } from "lucide-react";
 import Link from "next/link";
 
-export const metadata = {
-  title: "Donate — Flowvault",
-  description:
-    "Support Flowvault with a direct crypto donation. No middleman, no email, no receipts — consistent with how everything else here works.",
+const DONATE_TITLE =
+  "Donate to Flowvault — direct crypto, no email, no middleman";
+const DONATE_DESCRIPTION =
+  "Support Flowvault with a direct Bitcoin, Monero, Ethereum, Litecoin, USDT, or Solana donation. No middleman, no email, no receipts — consistent with how everything else here works.";
+
+export const metadata: Metadata = {
+  title: DONATE_TITLE,
+  description: DONATE_DESCRIPTION,
+  keywords: [
+    "Flowvault donate",
+    "crypto donation",
+    "Monero donation",
+    "Bitcoin donation",
+    "privacy-respecting donation",
+  ],
+  alternates: { canonical: "/donate" },
+  openGraph: {
+    type: "website",
+    url: `${APP_URL}/donate`,
+    title: DONATE_TITLE,
+    description: DONATE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: DONATE_TITLE,
+    description: DONATE_DESCRIPTION,
+  },
 };
 
 interface CoinMeta {

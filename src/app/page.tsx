@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { OpenVaultForm } from "@/components/OpenVaultForm";
-import { DONATE_PATH, GITHUB_URL } from "@/lib/config";
+import { APP_URL, CONTACT_EMAIL, DONATE_PATH, GITHUB_URL } from "@/lib/config";
 import {
   ShieldCheck,
   Eye,
@@ -19,6 +19,57 @@ import {
   Bitcoin,
   Heart,
 } from "lucide-react";
+
+/**
+ * schema.org payloads injected as JSON-LD on the home page.
+ *
+ * Google uses these to surface a sitelinks search box, an Organization
+ * knowledge panel, and rich results for a SoftwareApplication. We keep
+ * them in sync with the actual app by sourcing URLs from `config.ts`.
+ */
+const HOMEPAGE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${APP_URL}/#organization`,
+      name: "Flowvault",
+      url: APP_URL,
+      logo: `${APP_URL}/icon.svg`,
+      email: CONTACT_EMAIL,
+      sameAs: [GITHUB_URL],
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${APP_URL}/#website`,
+      url: APP_URL,
+      name: "Flowvault",
+      description:
+        "Zero-knowledge encrypted notepad with plausible deniability, a dead-man's switch, and drand-backed time-locked notes.",
+      publisher: { "@id": `${APP_URL}/#organization` },
+      inLanguage: "en",
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "Flowvault",
+      applicationCategory: "SecurityApplication",
+      operatingSystem: "Web",
+      url: APP_URL,
+      description:
+        "An open-source zero-knowledge encrypted online notepad. Argon2id + AES-256-GCM, plausible-deniability hidden volumes, a client-wrapped dead-man's switch, and drand-backed time-locked notes.",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      featureList: [
+        "Client-side Argon2id key derivation",
+        "AES-256-GCM authenticated encryption",
+        "Plausible-deniability hidden-volume format",
+        "Client-wrapped dead-man's switch",
+        "Drand-backed time-locked notes",
+        "No account required",
+        "Open source (frontend + Cloud Functions + Firestore rules)",
+      ],
+    },
+  ],
+};
 
 export default function HomePage() {
   return (
@@ -58,7 +109,7 @@ export default function HomePage() {
           </p>
         </section>
 
-        <section className="mt-20 grid gap-6 sm:grid-cols-3">
+        <section className="mt-20 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <Feature
             icon={<ShieldCheck size={18} />}
             title="Plausible deniability"
@@ -73,6 +124,19 @@ export default function HomePage() {
             icon={<Clock size={18} />}
             title="Dead-man's switch"
             body="Arm a vault to auto-release to a beneficiary password if you stop checking in. Wrapped key is client-side; release is server-scheduled."
+          />
+          <Feature
+            icon={<Clock size={18} />}
+            title="Time-locked notes"
+            body={
+              <>
+                Encrypt a message to a future moment. Nobody &mdash; not
+                even us &mdash; can read it before the drand beacon
+                publishes the unlock round.
+              </>
+            }
+            href="/timelock/new"
+            ctaLabel="Lock a message"
           />
         </section>
 
@@ -346,6 +410,12 @@ export default function HomePage() {
           </Link>
         </div>
       </footer>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(HOMEPAGE_JSON_LD).replace(/</g, "\\u003c"),
+        }}
+      />
     </>
   );
 }
@@ -354,10 +424,14 @@ function Feature({
   icon,
   title,
   body,
+  href,
+  ctaLabel,
 }: {
   icon: React.ReactNode;
   title: string;
-  body: string;
+  body: React.ReactNode;
+  href?: string;
+  ctaLabel?: string;
 }) {
   return (
     <div className="rounded-xl border border-border bg-background-elev p-5">
@@ -368,6 +442,14 @@ function Feature({
         <h3 className="text-sm font-medium text-foreground">{title}</h3>
       </div>
       <p className="mt-3 text-sm leading-relaxed text-muted">{body}</p>
+      {href ? (
+        <Link
+          href={href}
+          className="mt-4 inline-flex items-center gap-1 text-sm text-accent hover:underline"
+        >
+          {ctaLabel ?? "Open"} &rarr;
+        </Link>
+      ) : null}
     </div>
   );
 }

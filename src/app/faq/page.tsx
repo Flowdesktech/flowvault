@@ -1,12 +1,41 @@
+import type { Metadata } from "next";
+import { isValidElement, type ReactNode } from "react";
 import { Navbar } from "@/components/Navbar";
 import Link from "next/link";
-import { DONATE_PATH } from "@/lib/config";
+import { DONATE_PATH, APP_URL } from "@/lib/config";
 
-export const metadata = {
-  title:
-    "FAQ — Flowvault: encrypted online notepad, dead-man's switch, ProtectedText / Standard Notes / CryptPad / Privnote alternative",
-  description:
-    "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how the dead-man's switch releases a vault to a beneficiary if you stop checking in, how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, Notesnook, Joplin, Obsidian, Bitwarden Send, and Skiff Notes, and what happens if you forget your password.",
+const FAQ_TITLE =
+  "FAQ — Flowvault: encrypted online notepad, dead-man's switch, ProtectedText / Standard Notes / CryptPad / Privnote alternative";
+const FAQ_DESCRIPTION =
+  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how the dead-man's switch releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, Notesnook, Joplin, Obsidian, Bitwarden Send, and Skiff Notes.";
+
+export const metadata: Metadata = {
+  title: FAQ_TITLE,
+  description: FAQ_DESCRIPTION,
+  keywords: [
+    "encrypted notepad FAQ",
+    "zero knowledge notes FAQ",
+    "ProtectedText alternative",
+    "Standard Notes alternative",
+    "CryptPad alternative",
+    "Privnote alternative",
+    "dead man's switch notepad",
+    "time-locked notes",
+    "drand tlock",
+    "plausible deniability notes",
+  ],
+  alternates: { canonical: "/faq" },
+  openGraph: {
+    type: "article",
+    url: `${APP_URL}/faq`,
+    title: FAQ_TITLE,
+    description: FAQ_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: FAQ_TITLE,
+    description: FAQ_DESCRIPTION,
+  },
 };
 
 interface QA {
@@ -487,12 +516,112 @@ const FEATURES: QA[] = [
     a: (
       <>
         No, they&apos;re complementary. The dead-man&apos;s switch uses a
-        password-wrapped key that the <em>server</em> unveils after a
-        timeout. Time-locked notes (on the roadmap) use the{" "}
-        <Strong>drand</Strong> public randomness beacon&apos;s threshold
-        BLS signatures as the unlock material &mdash; nobody, not us, not
-        you, can decrypt before drand publishes the round signature.
-        Different threat models, different mechanisms.
+        password-wrapped key that a <em>server</em> unveils after a
+        timeout. Time-locked notes use the <Strong>drand</Strong> public
+        randomness beacon&apos;s threshold BLS signatures as the unlock
+        material &mdash; nobody, not us, not you, can decrypt before
+        drand publishes the round signature. Different threat models,
+        different mechanisms.
+      </>
+    ),
+  },
+  {
+    q: "How do time-locked notes work?",
+    a: (
+      <>
+        <p>
+          You compose a message and pick an unlock moment. Your browser:
+        </p>
+        <ol className="mt-2 list-decimal space-y-1 pl-5">
+          <li>
+            computes the drand round number whose signature will be
+            published closest to your unlock moment (30-second
+            granularity);
+          </li>
+          <li>
+            encrypts your plaintext to that round using{" "}
+            <Strong>tlock</Strong> &mdash; identity-based encryption over
+            BLS12-381, with the round number as the identity;
+          </li>
+          <li>
+            uploads only the opaque ciphertext, the target round, and
+            the drand chain hash to a write-once{" "}
+            <Strong>timelocks</Strong> Firestore collection.
+          </li>
+        </ol>
+        <p className="mt-3">
+          We hand you back a share link like{" "}
+          <Strong>flowvault.flowdesk.tech/t/xyz</Strong>. Visit it any
+          time: before the unlock moment you see a countdown, after it
+          your browser grabs the drand round signature and decrypts
+          locally. Flowvault cannot unlock it early &mdash; the key
+          literally doesn&apos;t exist yet.
+        </p>
+      </>
+    ),
+  },
+  {
+    q: "Who / what is drand?",
+    a: (
+      <>
+        <Strong>drand</Strong> is a distributed randomness beacon
+        operated by a network of independent organisations (Cloudflare,
+        Protocol Labs, the EPFL DEDIS lab, Kudelski Security, and
+        others). Every 30 seconds the network publishes a fresh BLS
+        threshold signature. Nobody can produce that signature in
+        advance because nobody holds the full private key &mdash; a
+        supermajority of node operators have to collaborate for each
+        round. That&apos;s what makes it safe to use drand rounds as
+        identities for time-lock encryption: the &ldquo;unlock key&rdquo;
+        for a round doesn&apos;t exist until enough honest operators
+        sign.
+      </>
+    ),
+  },
+  {
+    q: "Can Flowvault or law enforcement decrypt a time-locked note early?",
+    a: (
+      <>
+        No. This is the central point of using drand + tlock rather than
+        a server-held key. Until the target round&apos;s signature is
+        published, the decryption key does not exist in any one place
+        &mdash; not on our servers, not in your browser, not in a
+        hardware module somewhere. A subpoena against Flowvault would
+        yield only ciphertext and a target round number. A subpoena
+        against drand would fail too: it would have to compel a
+        supermajority of independent operators across jurisdictions to
+        collude.
+      </>
+    ),
+  },
+  {
+    q: "What are the limits and leaks of time-locked notes?",
+    a: (
+      <>
+        The <em>target round</em>, and therefore the approximate unlock
+        wall-clock time, is visible to the server &mdash; readers need
+        it to know when to retry. The share URL is the access
+        credential: anyone with the link can open the note once the
+        round releases, so treat it like the secret. Message size is
+        capped at 128 KiB of plaintext. We rely on drand mainnet staying
+        honest and on BLS12-381; if drand ever deprecates the scheme
+        we&apos;ll migrate.
+      </>
+    ),
+  },
+  {
+    q: "How is this different from Privnote or other burn-after-reading links?",
+    a: (
+      <>
+        Privnote-style services encrypt a note, put the key in a URL
+        fragment, and delete the ciphertext the first time someone
+        opens it. Anyone who gets the link <em>right now</em> can read
+        it. Flowvault time-locked notes are the opposite: the link can
+        be public, but <em>nobody</em> &mdash; not even the sender
+        &mdash; can read the contents before the unlock moment. Great
+        for a future-self letter, a scheduled disclosure, a
+        capsule for an anniversary, or a trust-minimised release
+        commitment.
       </>
     ),
   },
@@ -516,9 +645,8 @@ const COMPANY: QA[] = [
           </li>
           <li>
             <Strong>Cloud Functions</Strong> (dead-man&apos;s-switch
-            heartbeat + sweep, abuse intake). You can read exactly what
-            server-side code runs on your behalf &mdash; there is no hidden
-            server process.
+            sweep). You can read exactly what server-side code runs on
+            your behalf &mdash; there is no hidden server process.
           </li>
           <li>
             <Strong>Firestore security rules</Strong> (the actual boundary
@@ -628,15 +756,99 @@ const COMPANY: QA[] = [
   },
 ];
 
+/**
+ * Block-level element types that should get a space break when we
+ * flatten a React tree into plaintext for schema.org answers.
+ */
+const BLOCK_TAGS = new Set([
+  "p",
+  "div",
+  "li",
+  "ol",
+  "ul",
+  "br",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+]);
+
+/**
+ * Recursively walk a React node and concatenate its text children.
+ *
+ * We can&apos;t use `renderToStaticMarkup` in Next 16 Server Components
+ * (the framework rejects any `react-dom/server` import). Walking the
+ * element tree manually keeps us fully server-safe and avoids any
+ * runtime cost on the client.
+ */
+function nodeToText(node: ReactNode): string {
+  const raw = walk(node);
+  return raw.replace(/\s+/g, " ").trim();
+}
+
+function walk(node: ReactNode): string {
+  if (node === null || node === undefined || typeof node === "boolean") {
+    return "";
+  }
+  if (typeof node === "string" || typeof node === "number") {
+    return String(node);
+  }
+  if (Array.isArray(node)) {
+    return node.map(walk).join("");
+  }
+  if (isValidElement(node)) {
+    const el = node as React.ReactElement<{ children?: ReactNode }>;
+    const type = el.type;
+    const tag = typeof type === "string" ? type.toLowerCase() : "";
+    const inner = walk(el.props?.children);
+    return BLOCK_TAGS.has(tag) ? ` ${inner} ` : inner;
+  }
+  return "";
+}
+
+/** Build a schema.org FAQPage JSON-LD payload from every QA list. */
+function buildFaqJsonLd(groups: QA[][]) {
+  const mainEntity = groups.flat().map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text:
+        typeof item.a === "string" ? item.a : nodeToText(item.a),
+    },
+  }));
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity,
+  };
+}
+
 export default function FAQPage() {
+  const jsonLd = buildFaqJsonLd([
+    ABOUT,
+    VS_PROTECTED_TEXT,
+    SECURITY,
+    FEATURES,
+    USAGE,
+    COMPANY,
+  ]);
   return (
     <>
       <Navbar />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 text-[15px] leading-relaxed text-foreground">
-        <h1 className="text-3xl font-semibold tracking-tight">FAQ</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Flowvault FAQ
+        </h1>
         <p className="mt-3 text-muted">
-          Questions we get (or expect to get). If yours isn&apos;t here, open
-          an issue on GitHub.
+          Questions we get (or expect to get) about our zero-knowledge
+          encrypted notepad, the dead-man&apos;s switch, drand-backed
+          time-locked notes, and how Flowvault compares to
+          ProtectedText, Standard Notes, CryptPad, and other
+          alternatives. If yours isn&apos;t here, open an issue on
+          GitHub.
         </p>
 
         <Section title="About Flowvault" items={ABOUT} />
@@ -655,6 +867,14 @@ export default function FAQPage() {
       <footer className="border-t border-border/60 py-6 text-center text-xs text-muted">
         Flowvault · part of the Flowdesk family
       </footer>
+      <script
+        type="application/ld+json"
+        // `dangerouslySetInnerHTML` is the standard way to emit JSON-LD
+        // in Next.js without escaping the payload into HTML entities.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
     </>
   );
 }

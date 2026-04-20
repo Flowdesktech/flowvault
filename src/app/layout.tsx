@@ -52,13 +52,29 @@ export const metadata: Metadata = {
     url: APP_URL,
     title: TITLE,
     description: DESCRIPTION,
+    locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
     title: TITLE,
     description: DESCRIPTION,
+    creator: "@flowdesktech",
   },
-  robots: { index: true, follow: true },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  authors: [{ name: "Flowdesk", url: "https://flowdesk.tech" }],
+  creator: "Flowdesk",
+  publisher: "Flowdesk",
+  category: "privacy",
 };
 
 export default function RootLayout({

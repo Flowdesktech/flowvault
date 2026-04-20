@@ -1,9 +1,36 @@
+import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
+import { APP_URL } from "@/lib/config";
 
-export const metadata = {
-  title: "Security — Flowvault",
-  description:
-    "How Flowvault keeps your notes private: threat model, crypto primitives, and the limits of what we can protect against.",
+const SEC_TITLE =
+  "Security & threat model — Argon2id, AES-GCM, hidden volumes, drand tlock";
+const SEC_DESCRIPTION =
+  "Flowvault's threat model and crypto primitives: Argon2id key derivation, AES-256-GCM authenticated encryption, hidden-volume plausible deniability, a client-wrapped dead-man's switch, and drand-backed time-locked notes. Written honestly, with the limits spelled out.";
+
+export const metadata: Metadata = {
+  title: SEC_TITLE,
+  description: SEC_DESCRIPTION,
+  keywords: [
+    "Flowvault security",
+    "encrypted notepad threat model",
+    "Argon2id notes",
+    "AES-GCM notepad",
+    "plausible deniability hidden volumes",
+    "drand tlock time lock",
+    "zero knowledge architecture",
+  ],
+  alternates: { canonical: "/security" },
+  openGraph: {
+    type: "article",
+    url: `${APP_URL}/security`,
+    title: SEC_TITLE,
+    description: SEC_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SEC_TITLE,
+    description: SEC_DESCRIPTION,
+  },
 };
 
 export default function SecurityPage() {
@@ -167,11 +194,58 @@ export default function SecurityPage() {
 
         <H2>Time-locked notes</H2>
         <p className="mt-2 text-muted">
-          Flowvault can encrypt a capsule to a future drand beacon round
-          using the tlock scheme. The ciphertext is stored in Firestore and
-          becomes decryptable only after the drand network publishes the
-          corresponding beacon signature. Nobody, including us and you, can
-          decrypt it earlier.
+          Flowvault can encrypt a capsule to a future{" "}
+          <a
+            href="https://drand.love"
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent hover:underline"
+          >
+            drand
+          </a>{" "}
+          beacon round using the{" "}
+          <a
+            href="https://github.com/drand/tlock-js"
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent hover:underline"
+          >
+            tlock
+          </a>{" "}
+          scheme (identity-based encryption over BLS). The ciphertext is
+          stored in Firestore and becomes decryptable only after the drand
+          network publishes the corresponding round signature. Nobody
+          &mdash; including Flowvault, including the sender, including a
+          subpoena &mdash; can decrypt earlier than that moment.
+        </p>
+        <ol className="mt-3 list-decimal space-y-1 pl-5 text-muted">
+          <li>
+            In your browser we compute the target round for your chosen
+            unlock time (30-second granularity against the RFC drand
+            mainnet chain) and encrypt the plaintext to that round.
+          </li>
+          <li>
+            We store <Code>ciphertext</Code>, <Code>round</Code>,{" "}
+            <Code>chainHash</Code>, and a server timestamp in{" "}
+            <Code>timelocks/&#123;id&#125;</Code>. Firestore rules forbid
+            updates or deletes &mdash; capsules are write-once.
+          </li>
+          <li>
+            When anyone opens <Code>/t/&#123;id&#125;</Code> after the
+            unlock moment, the browser fetches the drand round signature
+            and decrypts locally. The server never sees the plaintext
+            and never holds the unlock key.
+          </li>
+        </ol>
+        <p className="mt-2 text-muted">
+          Honest trade-offs: the target <em>round</em> (and therefore
+          the unlock wall-clock time, to ~30 s) is visible to the server
+          by necessity &mdash; readers need to know when to retry. The
+          share URL is the access credential; treat it like the secret
+          itself. Security rests on drand&apos;s threshold assumption
+          (a supermajority of node operators must stay honest) and on
+          BLS over BLS12-381; we track the chain parameters and will
+          rotate if drand ever deprecates the current scheme.
         </p>
 
         <H2>Responsible disclosure</H2>

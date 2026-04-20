@@ -23,7 +23,7 @@ name: Deploy Firebase backend
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     # Only redeploy when backend files actually change. Prevents wasting
     # a deploy on a README-only or frontend-only commit.
     paths:

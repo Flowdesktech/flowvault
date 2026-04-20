@@ -43,7 +43,7 @@ nearly every dimension that matters for a zero-knowledge notepad.
 ### Features you actually want
 
 - **Hidden-volume vaults** — the headline feature. One URL, N notebooks, one blob. If someone coerces a password out of you at a border crossing, you hand over the decoy. Cryptographically indistinguishable from a single-notebook vault.
-- **Time-locked notes** *(shipping soon)* — encrypt notes to a future date using drand's public randomness beacon. Nobody, not even us, not even you, can decrypt before the release round.
+- **Time-locked notes** — encrypt a message to a future date using the [drand](https://drand.love) public randomness beacon and the [tlock](https://github.com/drand/tlock-js) scheme (identity-based encryption over BLS12-381). The ciphertext is stored opaquely; the decryption key literally does not exist until drand's network publishes the target round signature. Nobody — not us, not the sender, not a subpoena — can unlock it early. Share links look like `flowvault.flowdesk.tech/t/<id>`.
 - **Dead-man's switch** — arm a vault so it auto-releases to a pre-chosen beneficiary password if you stop saving for the interval + grace you configure. Weekly / monthly / quarterly / yearly presets. The beneficiary key wraps your master key client-side; the server just schedules the release. Hourly Cloud Function sweeps expired configs; the Firestore rules forbid clients from faking a release or extending one they can't actually open.
 - **Optimistic concurrency** — edit the same vault in two browser tabs without losing work.
 - **Modern editor** — keyboard-first (Ctrl/Cmd+S), auto-save with visible status, dark mode, clean typography.
@@ -124,10 +124,10 @@ Shipped:
 - Optimistic concurrency on writes
 - Decoy-password management UI ("Add password" in the editor)
 - Dead-man's switch: configure / heartbeat-on-save / scheduled release / beneficiary unlock flow
+- drand-backed time-locked notes (`/timelock/new` compose → `/t/{id}` view) via [tlock-js](https://github.com/drand/tlock-js)
 
 In progress / planned:
 
-- drand-backed time-locked notes (UI)
 - Multi-slot notebooks (currently one slot = one notebook)
 - Markdown preview + code syntax highlighting
 - PWA / offline mode

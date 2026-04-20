@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-// useNow provides the live countdown clock for LockedView.
 import {
   Copy,
   Check,
@@ -9,6 +8,9 @@ import {
   Unlock,
   Loader2,
   AlertTriangle,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import {
   fetchTimelock,
@@ -20,6 +22,7 @@ import {
   type DecryptOutcome,
 } from "@/lib/timelock/tlock";
 import { useNow } from "@/lib/utils/useNow";
+import { Button } from "@/components/ui/Button";
 
 type Phase =
   | { kind: "loading" }
@@ -29,6 +32,12 @@ type Phase =
   | {
       kind: "unlocking";
       capsule: TimelockRecord;
+      password?: string;
+    }
+  | {
+      kind: "awaiting-password";
+      capsule: TimelockRecord;
+      error: string | null;
     }
   | { kind: "unlocked"; capsule: TimelockRecord; plaintext: string }
   | { kind: "decrypt-failed"; capsule: TimelockRecord; message: string };
@@ -49,6 +58,8 @@ export function TimelockViewer({ id }: { id: string }) {
         const unlockAtMs = unlockTimeForRound(capsule.round);
         if (Date.now() < unlockAtMs) {
           setPhase({ kind: "locked", capsule, unlockAtMs });
+        } else if (capsule.passwordProtected) {
+          setPhase({ kind: "awaiting-password", capsule, error: null });
         } else {
           setPhase({ kind: "unlocking", capsule });
         }
@@ -65,10 +76,7 @@ export function TimelockViewer({ id }: { id: string }) {
     };
   }, [id]);
 
-  // Once the capsule is loaded and the unlock moment passes, try
-  // decryption. Re-runs automatically once `phase` transitions to
-  // `unlocking`, which itself can be driven by the locked-phase
-  // countdown below.
+  // Drive decryption whenever the phase transitions to `unlocking`.
   useEffect(() => {
     if (phase.kind !== "unlocking") return;
     let cancelled = false;
@@ -76,6 +84,7 @@ export function TimelockViewer({ id }: { id: string }) {
       const outcome: DecryptOutcome = await tryDecrypt(
         phase.capsule.ciphertext,
         phase.capsule.round,
+        phase.password ? { password: phase.password } : {},
       );
       if (cancelled) return;
       if (outcome.kind === "unlocked") {
@@ -90,6 +99,18 @@ export function TimelockViewer({ id }: { id: string }) {
           capsule: phase.capsule,
           unlockAtMs: outcome.unlockAtMs,
         });
+      } else if (outcome.kind === "needs-password") {
+        setPhase({
+          kind: "awaiting-password",
+          capsule: phase.capsule,
+          error: null,
+        });
+      } else if (outcome.kind === "wrong-password") {
+        setPhase({
+          kind: "awaiting-password",
+          capsule: phase.capsule,
+          error: "Wrong password. Try again.",
+        });
       } else {
         setPhase({
           kind: "decrypt-failed",
@@ -103,16 +124,19 @@ export function TimelockViewer({ id }: { id: string }) {
     };
   }, [phase]);
 
-  // Schedule a single timer to promote `locked` → `unlocking` once the
-  // wall-clock crosses the unlock moment. Re-registers if the phase
-  // changes. Using a timer instead of a per-tick setState avoids the
-  // `set-state-in-effect` pattern flagged by React&apos;s lint rule.
+  // Promote `locked` -> (`awaiting-password` | `unlocking`) once the
+  // wall-clock crosses the unlock moment. Using a timer instead of a
+  // per-tick setState avoids React's `set-state-in-effect` lint.
   useEffect(() => {
     if (phase.kind !== "locked") return;
     const delay = Math.max(0, phase.unlockAtMs - Date.now());
     const capsule = phase.capsule;
     const id = setTimeout(() => {
-      setPhase({ kind: "unlocking", capsule });
+      if (capsule.passwordProtected) {
+        setPhase({ kind: "awaiting-password", capsule, error: null });
+      } else {
+        setPhase({ kind: "unlocking", capsule });
+      }
     }, delay);
     return () => clearTimeout(id);
   }, [phase]);
@@ -161,11 +185,23 @@ export function TimelockViewer({ id }: { id: string }) {
           Unlocking…
         </Header>
         <p className="mt-2 text-sm text-muted">
-          Fetching the drand beacon signature for round{" "}
-          <span className="font-mono">#{phase.capsule.round}</span> and
-          decrypting in your browser.
+          {phase.password
+            ? "Deriving the key from your password and decrypting locally. This takes a moment on purpose (Argon2id)."
+            : <>Fetching the drand beacon signature for round <span className="font-mono">#{phase.capsule.round}</span> and decrypting in your browser.</>}
         </p>
       </Card>
+    );
+  }
+
+  if (phase.kind === "awaiting-password") {
+    return (
+      <AwaitingPasswordView
+        capsule={phase.capsule}
+        error={phase.error}
+        onSubmit={(pw) =>
+          setPhase({ kind: "unlocking", capsule: phase.capsule, password: pw })
+        }
+      />
     );
   }
 
@@ -226,6 +262,79 @@ function LockedView({
         anyone with access to our database. The unlock key doesn&apos;t
         exist until the drand network publishes the target round.
       </p>
+      {capsule.passwordProtected ? (
+        <div className="mt-4 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+          <KeyRound size={14} className="mt-0.5 shrink-0" />
+          <p>
+            This capsule also requires a password. You&apos;ll be asked
+            for it after the countdown finishes. Ask the sender for it
+            through a different channel than the link.
+          </p>
+        </div>
+      ) : null}
+    </Card>
+  );
+}
+
+function AwaitingPasswordView({
+  capsule,
+  error,
+  onSubmit,
+}: {
+  capsule: TimelockRecord;
+  error: string | null;
+  onSubmit: (password: string) => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  return (
+    <Card tone="accent">
+      <Header icon={<KeyRound size={18} />}>Password required</Header>
+      <p className="mt-2 text-sm text-muted">
+        The time-lock has released, but the sender added a password gate.
+        Enter it below to read the message. The password is verified
+        locally in your browser &mdash; we never see it.
+      </p>
+      <form
+        className="mt-5 space-y-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (password.length === 0) return;
+          onSubmit(password);
+        }}
+      >
+        <div className="relative">
+          <input
+            type={showPw ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            autoFocus
+            autoComplete="off"
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPw((v) => !v)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted hover:text-foreground"
+            aria-label={showPw ? "Hide password" : "Show password"}
+          >
+            {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+          </button>
+        </div>
+        {error ? (
+          <p className="text-sm text-danger">{error}</p>
+        ) : null}
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-muted">
+            Target round:{" "}
+            <span className="font-mono">#{capsule.round.toLocaleString()}</span>
+          </p>
+          <Button type="submit" disabled={password.length === 0}>
+            <Unlock size={14} /> Unlock
+          </Button>
+        </div>
+      </form>
     </Card>
   );
 }
@@ -267,7 +376,8 @@ function UnlockedView({
         Decrypted locally in your browser using the drand signature for
         round{" "}
         <span className="font-mono text-foreground">#{capsule.round}</span>
-        . We never saw the plaintext.
+        {capsule.passwordProtected ? " plus your password" : ""}. We
+        never saw the plaintext.
       </p>
     </Card>
   );

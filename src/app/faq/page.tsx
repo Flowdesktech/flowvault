@@ -602,10 +602,32 @@ const FEATURES: QA[] = [
         wall-clock time, is visible to the server &mdash; readers need
         it to know when to retry. The share URL is the access
         credential: anyone with the link can open the note once the
-        round releases, so treat it like the secret. Message size is
-        capped at 128 KiB of plaintext. We rely on drand mainnet staying
-        honest and on BLS12-381; if drand ever deprecates the scheme
+        round releases, so treat it like the secret (or see the next
+        FAQ for an optional password gate). Message size is capped at
+        128 KiB of plaintext. We rely on drand mainnet staying honest
+        and on BLS12-381; if drand ever deprecates the scheme
         we&apos;ll migrate.
+      </>
+    ),
+  },
+  {
+    q: "Can I require a password in addition to the time-lock?",
+    a: (
+      <>
+        Yes. When composing a time-locked note, tick{" "}
+        <em>&ldquo;Also require a password to read&rdquo;</em>. The note
+        is then wrapped in <Strong>two layers</Strong>: an inner
+        AES-256-GCM layer keyed by Argon2id(password), and an outer
+        tlock layer keyed to the unlock round. The reader has to wait
+        for the round to release <em>and</em> enter the password.
+        Neither gate is redundant: before the round the capsule is
+        completely opaque (even to someone who knows the password);
+        after the round, the bytes become a password-shaped blob that
+        still needs the key. We store no password and no hint, so if
+        the reader forgets it, the message is gone even after the
+        time-lock opens. Share the link and the password through
+        different channels &mdash; e.g. link over email, password by
+        phone call or Signal.
       </>
     ),
   },

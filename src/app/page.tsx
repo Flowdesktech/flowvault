@@ -132,7 +132,8 @@ export default function HomePage() {
               <>
                 Encrypt a message to a future moment. Nobody &mdash; not
                 even us &mdash; can read it before the drand beacon
-                publishes the unlock round.
+                publishes the unlock round. Optional password gate for
+                when the link might travel through untrusted channels.
               </>
             }
             href="/timelock/new"
@@ -260,7 +261,7 @@ export default function HomePage() {
                 />
                 <Row
                   label="Time-locked notes"
-                  ours="Yes (drand)"
+                  ours="Yes (drand + optional password)"
                   theirs={<X className="inline" size={14} />}
                   oursGood
                 />

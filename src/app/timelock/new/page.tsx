@@ -5,9 +5,9 @@ import Link from "next/link";
 import { APP_URL } from "@/lib/config";
 
 const TL_TITLE =
-  "Time-locked notes — encrypt a message to a future date with drand & tlock";
+  "Time-locked notes — encrypt a message to a future date with drand & tlock (optional password)";
 const TL_DESCRIPTION =
-  "Flowvault's drand-backed time-lock: seal a message now, unlock it automatically at a future moment. Nobody — including Flowvault, including the sender, including a subpoena — can read it before the drand public randomness beacon publishes the target round signature.";
+  "Flowvault's drand-backed time-lock: seal a message now, unlock it automatically at a future moment. Nobody — including Flowvault, including the sender, including a subpoena — can read it before the drand public randomness beacon publishes the target round signature. Optionally add a password gate so a leaked link alone isn't enough to read the message after release.";
 
 export const metadata: Metadata = {
   title: TL_TITLE,
@@ -20,6 +20,9 @@ export const metadata: Metadata = {
     "encrypted message open later",
     "crypto time capsule",
     "scheduled disclosure",
+    "time-locked note with password",
+    "password-protected time capsule",
+    "dual-gate encrypted message",
   ],
   alternates: { canonical: "/timelock/new" },
   openGraph: {
@@ -61,7 +64,9 @@ export default function NewTimelockPage() {
             distributed beacon network, nobody &mdash; not you, not us,
             not anyone with access to our database &mdash; can decrypt
             it. After the release moment, anyone with the share link
-            can. Learn more on the{" "}
+            can open it &mdash; or, if you also set a password below,
+            anyone with the link <em>and</em> the password. Learn more
+            on the{" "}
             <Link href="/security" className="text-accent hover:underline">
               security page
             </Link>

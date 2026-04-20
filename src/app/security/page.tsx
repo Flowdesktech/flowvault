@@ -242,10 +242,49 @@ export default function SecurityPage() {
           the unlock wall-clock time, to ~30 s) is visible to the server
           by necessity &mdash; readers need to know when to retry. The
           share URL is the access credential; treat it like the secret
-          itself. Security rests on drand&apos;s threshold assumption
-          (a supermajority of node operators must stay honest) and on
-          BLS over BLS12-381; we track the chain parameters and will
-          rotate if drand ever deprecates the current scheme.
+          itself (or add an optional password gate, below). Security
+          rests on drand&apos;s threshold assumption (a supermajority
+          of node operators must stay honest) and on BLS over BLS12-381;
+          we track the chain parameters and will rotate if drand ever
+          deprecates the current scheme.
+        </p>
+
+        <H2>Optional password on time-locked notes</H2>
+        <p className="mt-2 text-muted">
+          You can harden a capsule with a second gate so that even a
+          leaked URL isn&apos;t sufficient to read the message after the
+          time-lock releases. When enabled, the plaintext is
+          double-wrapped:
+        </p>
+        <ol className="mt-3 list-decimal space-y-1 pl-5 text-muted">
+          <li>
+            <strong className="text-foreground">Inner layer (password):</strong>{" "}
+            a 16-byte random salt is generated, an Argon2id key is
+            derived from your password (same parameters as vaults: 64
+            MiB memory, 3 iterations), and the plaintext is encrypted
+            with AES-256-GCM under that key. The inner framing is{" "}
+            <Code>&quot;FVPW&quot; || version || saltLen || salt || iv || ct || tag</Code>
+            .
+          </li>
+          <li>
+            <strong className="text-foreground">Outer layer (time):</strong>{" "}
+            those bytes are passed to tlock and sealed to the unlock
+            round exactly like a password-less capsule.
+          </li>
+        </ol>
+        <p className="mt-2 text-muted">
+          Why the inner layer comes first: before the unlock round
+          releases, the capsule is cryptographically opaque &mdash; even
+          a reader who knows the password cannot peek at the AES layer
+          early. After the round, the bytes are still a
+          password-authenticated blob that only the key unlocks. The
+          Firestore document carries a <Code>passwordProtected</Code>{" "}
+          boolean hint so the viewer can prompt during the countdown
+          instead of after; the viewer also detects the inner layer
+          cryptographically from the decrypted bytes, so a forged or
+          missing hint cannot bypass the password. We never store the
+          password, its hash, or a hint; if you lose it the message is
+          unrecoverable.
         </p>
 
         <H2>Responsible disclosure</H2>

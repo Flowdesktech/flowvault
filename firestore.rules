@@ -96,6 +96,8 @@ service cloud.firestore {
         && d.ciphertext.size() <= 262144
         && d.round is int
         && d.round > 0
-        && d.chainHash is string;
+        && d.chainHash is string
+        && (!d.keys().hasAny(['passwordProtected'])
+            || d.passwordProtected is bool);
   }
 }

@@ -5,7 +5,7 @@ import { TimelockViewer } from "@/components/timelock/TimelockViewer";
 export const metadata: Metadata = {
   title: "Time-locked note — Flowvault",
   description:
-    "Open a drand-backed time-locked note. The message unlocks automatically once the target beacon round is published.",
+    "Open a drand-backed time-locked note. The message unlocks automatically once the target beacon round is published; if the sender added a password gate, you'll be prompted for it after the countdown finishes.",
   robots: { index: false, follow: false },
 };
 

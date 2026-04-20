@@ -4,15 +4,20 @@
  * Data model (zero-knowledge):
  *
  *   timelocks/{capsuleId} {
- *     ciphertext:  bytes       // UTF-8 encoded tlock (age-armored) payload
- *     round:       number      // target drand round
- *     chainHash:   string      // drand chain identifier
- *     createdAt:   Timestamp
+ *     ciphertext:         bytes       // UTF-8 encoded tlock (age-armored) payload
+ *     round:              number      // target drand round
+ *     chainHash:          string      // drand chain identifier
+ *     createdAt:          Timestamp
+ *     passwordProtected?: bool        // present+true iff an inner password
+ *                                     // layer wraps the time-locked payload
  *   }
  *
- * Only the target `round` (and therefore the unlock wall-clock time) is
- * visible to the server &mdash; everything else is cryptographically
- * sealed until drand publishes that round.
+ * Only the target `round` (and therefore the unlock wall-clock time) and
+ * whether a password layer exists are visible to the server &mdash;
+ * everything else is cryptographically sealed until drand publishes that
+ * round. The `passwordProtected` flag is a UX hint only; the viewer also
+ * detects the inner layer cryptographically after tlock-decrypt, so
+ * forging or omitting the hint cannot bypass the password.
  */
 import {
   Bytes,
@@ -32,6 +37,7 @@ export interface TimelockRecord {
   round: number;
   chainHash: string;
   createdAt: Timestamp | null;
+  passwordProtected: boolean;
 }
 
 /**
@@ -42,14 +48,17 @@ export async function createTimelock(args: {
   ciphertext: string;
   round: number;
   chainHash: string;
+  passwordProtected?: boolean;
 }): Promise<string> {
   const bytes = new TextEncoder().encode(args.ciphertext);
-  const ref = await addDoc(collection(db(), "timelocks"), {
+  const payload: Record<string, unknown> = {
     ciphertext: Bytes.fromUint8Array(bytes),
     round: args.round,
     chainHash: args.chainHash,
     createdAt: serverTimestamp(),
-  });
+  };
+  if (args.passwordProtected) payload.passwordProtected = true;
+  const ref = await addDoc(collection(db(), "timelocks"), payload);
   return ref.id;
 }
 
@@ -69,5 +78,6 @@ export async function fetchTimelock(id: string): Promise<TimelockRecord | null> 
     round: Number(data.round),
     chainHash: String(data.chainHash ?? ""),
     createdAt: (data.createdAt as Timestamp) ?? null,
+    passwordProtected: data.passwordProtected === true,
   };
 }

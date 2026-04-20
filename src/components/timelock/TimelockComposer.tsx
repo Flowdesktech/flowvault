@@ -11,7 +11,16 @@ import {
   unlockTimeForRound,
 } from "@/lib/timelock/tlock";
 import { createTimelock } from "@/lib/firebase/timelocks";
-import { Clock, Check, Copy, ExternalLink, Lock } from "lucide-react";
+import {
+  Clock,
+  Check,
+  Copy,
+  ExternalLink,
+  Lock,
+  KeyRound,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import Link from "next/link";
 import { APP_URL } from "@/lib/config";
 
@@ -41,11 +50,16 @@ export function TimelockComposer() {
   const [customISO, setCustomISO] = useState<string>(() =>
     toLocalInputValue(new Date(Date.now() + 24 * 60 * 60_000)),
   );
+  const [usePassword, setUsePassword] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [created, setCreated] = useState<{
     url: string;
     unlockAt: number;
+    passwordProtected: boolean;
   } | null>(null);
 
   const unlockAtMs = useMemo(() => {
@@ -79,18 +93,41 @@ export function TimelockComposer() {
       return;
     }
 
+    const trimmedPw = password;
+    if (usePassword) {
+      if (trimmedPw.length < 4) {
+        setErr("Password must be at least 4 characters.");
+        return;
+      }
+      if (trimmedPw !== confirm) {
+        setErr("Password and confirmation don't match.");
+        return;
+      }
+    }
+
     setBusy(true);
     try {
       const round = roundForUnlockAt(unlockAtMs);
-      const ciphertext = await encryptForRound(text, round);
+      const ciphertext = await encryptForRound(
+        text,
+        round,
+        usePassword ? { password: trimmedPw } : undefined,
+      );
       const id = await createTimelock({
         ciphertext,
         round,
         chainHash: activeChainInfo().hash,
+        passwordProtected: usePassword,
       });
       const url = `${APP_URL}/t/${id}`;
-      setCreated({ url, unlockAt: unlockTimeForRound(round) });
+      setCreated({
+        url,
+        unlockAt: unlockTimeForRound(round),
+        passwordProtected: usePassword,
+      });
       setText("");
+      setPassword("");
+      setConfirm("");
     } catch (e) {
       setErr((e as Error).message ?? "Failed to lock the message.");
     } finally {
@@ -99,7 +136,13 @@ export function TimelockComposer() {
   };
 
   if (created) {
-    return <CreatedCard url={created.url} unlockAt={created.unlockAt} />;
+    return (
+      <CreatedCard
+        url={created.url}
+        unlockAt={created.unlockAt}
+        passwordProtected={created.passwordProtected}
+      />
+    );
   }
 
   return (
@@ -172,6 +215,64 @@ export function TimelockComposer() {
         ) : null}
       </section>
 
+      <section className="rounded-2xl border border-border bg-background-elev p-5">
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={usePassword}
+            onChange={(e) => setUsePassword(e.target.checked)}
+            className="mt-1 h-4 w-4 rounded border-border bg-background text-accent focus:ring-2 focus:ring-accent/30"
+          />
+          <span>
+            <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <KeyRound size={16} className="text-accent" />
+              Also require a password to read
+            </span>
+            <span className="mt-1 block text-xs text-muted">
+              Adds a second gate: even after the time-lock releases, the
+              reader needs this password. Useful if the link might travel
+              through channels you don&apos;t fully trust. Share the
+              password out-of-band.
+            </span>
+          </span>
+        </label>
+        {usePassword ? (
+          <div className="mt-4 space-y-3">
+            <div className="relative">
+              <input
+                type={showPw ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                autoComplete="new-password"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted hover:text-foreground"
+                aria-label={showPw ? "Hide password" : "Show password"}
+              >
+                {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            <input
+              type={showPw ? "text" : "password"}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder="Confirm password"
+              autoComplete="new-password"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+            />
+            <p className="text-xs text-muted">
+              We never store your password, can&apos;t recover it, and
+              don&apos;t store a hint. If you forget it, the message is
+              gone even after the time-lock releases.
+            </p>
+          </div>
+        ) : null}
+      </section>
+
       {err ? (
         <div className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
           {err}
@@ -199,7 +300,15 @@ export function TimelockComposer() {
   );
 }
 
-function CreatedCard({ url, unlockAt }: { url: string; unlockAt: number }) {
+function CreatedCard({
+  url,
+  unlockAt,
+  passwordProtected,
+}: {
+  url: string;
+  unlockAt: number;
+  passwordProtected: boolean;
+}) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -217,9 +326,20 @@ function CreatedCard({ url, unlockAt }: { url: string; unlockAt: number }) {
       </div>
       <p className="mt-3 text-sm leading-relaxed text-foreground">
         Your message will unlock around{" "}
-        <strong>{new Date(unlockAt).toLocaleString()}</strong>. Anyone
-        with the link below can open it at that moment &mdash; treat the
-        link like the secret itself.
+        <strong>{new Date(unlockAt).toLocaleString()}</strong>.{" "}
+        {passwordProtected ? (
+          <>
+            Anyone with the link below will see a countdown, and after
+            that moment they still need the password you set to read the
+            message. Send the link and the password through different
+            channels.
+          </>
+        ) : (
+          <>
+            Anyone with the link below can open it at that moment
+            &mdash; treat the link like the secret itself.
+          </>
+        )}
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs text-foreground">
         <span className="flex-1 truncate">{url}</span>
@@ -238,10 +358,20 @@ function CreatedCard({ url, unlockAt }: { url: string; unlockAt: number }) {
           <ExternalLink size={12} /> Open
         </Link>
       </div>
+      {passwordProtected ? (
+        <div className="mt-4 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+          <KeyRound size={14} className="mt-0.5 shrink-0" />
+          <p>
+            This capsule is password-protected. We never stored the
+            password and can&apos;t recover it &mdash; if you lose it,
+            the message is unreadable forever.
+          </p>
+        </div>
+      ) : null}
       <p className="mt-4 text-xs text-muted">
         We never stored your message in plaintext. Flowvault can&apos;t
         unlock it for anyone &mdash; only the drand network&apos;s
-        published round signature can.
+        published round signature can{passwordProtected ? ", and only then with your password" : ""}.
       </p>
     </div>
   );

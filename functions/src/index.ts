@@ -143,7 +143,17 @@ export const readSend = onCall(
     const ref = db.collection("sends").doc(id);
     const result = await db.runTransaction<ReadSendPayload>(async (tx) => {
       const snap = await tx.get(ref);
-      if (!snap.exists) return { kind: "not-found" };
+      if (!snap.exists) {
+        // Log the id so the operator can grep Cloud Functions logs and
+        // cross-reference with Firestore. If the write actually
+        // committed, the doc should be visible in the console at
+        // sends/{id}. If it isn't, the likely causes are: (a) stale
+        // security rules that denied the create, (b) the sender wrote
+        // to a different Firebase project, or (c) the URL was
+        // truncated by the share channel.
+        logger.info(`readSend: not-found id=${id}`);
+        return { kind: "not-found" };
+      }
       const data = snap.data()!;
 
       const expiresAt = data.expiresAt as Timestamp | undefined;
@@ -151,12 +161,14 @@ export const readSend = onCall(
         // Don't delete inside the transaction when "expired" is the
         // answer; the scheduled sweep handles it. Keeps this path
         // cheap and avoids write cost on most polls.
+        logger.info(`readSend: expired id=${id}`);
         return { kind: "expired" };
       }
 
       const viewCount = (data.viewCount as number) ?? 0;
       const maxViews = (data.maxViews as number) ?? 1;
       if (viewCount >= maxViews) {
+        logger.info(`readSend: exhausted id=${id} views=${viewCount}/${maxViews}`);
         return { kind: "exhausted" };
       }
 

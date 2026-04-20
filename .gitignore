@@ -39,7 +39,6 @@ yarn-error.log*
 /functions/lib/
 firebase-debug.log
 firestore-debug.log
-.firebaserc
 .firebase/
 
 # firebase admin service-account credentials (NEVER commit these)

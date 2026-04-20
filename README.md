@@ -146,7 +146,7 @@ Workflows in `.github/workflows/`:
 production build for both the Next.js app and the Cloud Functions
 workspace. Catches regressions before they reach either Vercel or
 Firebase.
-- `deploy-firebase.yml` — runs on pushes to `main` that touch
+- `deploy-firebase.yml` — runs on pushes to `master` that touch
 `functions/`**, `firestore.rules`, `firestore.indexes.json`, or
 `firebase.json` (plus a manual `workflow_dispatch`). Builds the
 Functions, authenticates with a service account, and runs
@@ -177,11 +177,24 @@ variables → Actions → *Variables* tab):
 | `NEXT_PUBLIC_GITHUB_URL` | `https://github.com/Flowdesktech/flowvault` |
 
 
-Nothing in this repo pushes to Vercel — Vercel's own GitHub integration
-builds and ships the frontend on every push. If you'd rather drive Vercel
-from Actions as well, add a `deploy-vercel.yml` with the `vercel` CLI and
-a `VERCEL_TOKEN` secret; it is intentionally left out because duplicating
-the default GitHub integration tends to cause double deploys.
+**Vercel's GitHub integration handles the frontend automatically.**
+Connecting the repository to a Vercel project is enough:
+
+- Push to `master` &rarr; production deploy at the canonical domain.
+- Push to any other branch, or open a PR &rarr; preview deploy at a
+  `*.vercel.app` URL.
+- `NEXT_PUBLIC_*` env vars live in Vercel's project settings and are
+  injected at build time.
+
+Nothing in this repo needs to push to Vercel, so no `VERCEL_TOKEN` /
+`VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` secrets are required in GitHub.
+The Firebase workflow above is the only deploy this repo owns.
+
+(If you ever want to drive Vercel from Actions instead &mdash; for
+example to keep all build logs in one place &mdash; the commands are
+`vercel pull --environment=production`, `vercel build --prod`, and
+`vercel deploy --prebuilt --prod`. Plain `vercel deploy` without
+`--prod` produces a preview, not a production release.)
 
 ## Support Flowvault
 

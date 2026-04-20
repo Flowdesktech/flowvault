@@ -3,7 +3,7 @@ name: Deploy Firebase backend
 # Vercel handles the Next.js frontend via its GitHub integration.
 # This workflow covers what Vercel does NOT: the Firebase side of the
 # stack — Cloud Functions (dead-man's-switch sweep), Firestore security
-# rules, and Firestore indexes. It runs on every push to main plus a
+# rules, and Firestore indexes. It runs on every push to master plus a
 # manual dispatch button.
 #
 # Required repository secrets:

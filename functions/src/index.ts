@@ -101,9 +101,35 @@ export const deadmanSweep = onSchedule(
  * auth here would leak metadata (who read what) without adding
  * security.
  */
+/**
+ * CORS allowlist for the callable. Firebase Functions v2 don&rsquo;t
+ * default-allow custom domains &mdash; only the project&rsquo;s own
+ * `.web.app` / `.firebaseapp.com` hosts and localhost &mdash; so browser
+ * preflights from our real origin get rejected. We list:
+ *
+ *   - the production custom domain
+ *   - the Firebase Hosting domains (useful if we ever fall back to them)
+ *   - localhost / 127.0.0.1 for dev
+ *   - a regex for Vercel preview deployments (`*.vercel.app`)
+ *
+ * CORS is a browser-layer control, not a real security boundary here
+ * &mdash; anyone who already has the send id plus the URL-fragment key
+ * can just call us from curl. The allowlist is hygiene.
+ */
+const CALLABLE_CORS: (string | RegExp)[] = [
+  "https://flowvault.flowdesk.tech",
+  "https://flowvault-cf9f2.web.app",
+  "https://flowvault-cf9f2.firebaseapp.com",
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3000",
+  /^https:\/\/[a-z0-9-]+\.vercel\.app$/,
+];
+
 export const readSend = onCall(
   {
     region: "us-central1",
+    cors: CALLABLE_CORS,
     // Keep this tight; the payload is a single id. Anyone who has the
     // id + fragment key is authorized by construction.
     maxInstances: 20,

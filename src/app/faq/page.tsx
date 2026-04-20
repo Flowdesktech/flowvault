@@ -441,7 +441,36 @@ const USAGE: QA[] = [
   },
   {
     q: "How big can a notebook be?",
-    a: "Each notebook (slot) holds around 8 KiB of text (roughly 1,500 words) in the default configuration. A single vault holds 64 slots for a total of 512 KiB. Multi-slot notebooks (spreading one notebook across several slots for longer content) are on the roadmap.",
+    a: "Each slot holds around 8 KiB of text (roughly 1,500 words) in the default configuration, shared across all the tabs you create for that password. A single vault holds 64 slots for a total of 512 KiB. Spreading one notebook across multiple slots for longer content is on the roadmap.",
+  },
+  {
+    q: "Can I have multiple notebooks under one password?",
+    a: (
+      <>
+        Yes. Each password unlocks a <Strong>workspace of tabs</Strong>,
+        not a single page. Click <Code>+ New</Code> above the editor to
+        add a tab, double-click (or hover and click the pencil) to
+        rename, drag tabs to reorder, and click the <Code>&times;</Code>{" "}
+        to delete. All tabs &mdash; their titles, order, and contents
+        &mdash; live inside the same encrypted slot, so the server sees
+        one opaque blob the same as before. The tab list itself is
+        zero-knowledge: nobody who does not have your password can tell
+        how many tabs you have or what they&apos;re called.
+      </>
+    ),
+  },
+  {
+    q: "If I add tabs, can someone with my decoy password see them?",
+    a: (
+      <>
+        No. Decoy passwords land in their own separate slot with their
+        own tab set. Adding or deleting tabs in your real notebook does
+        not touch the decoy&apos;s slot at all &mdash; and vice versa.
+        From the server&apos;s perspective the ciphertext blob is a
+        fixed size no matter how many tabs exist in any slot, so the
+        tab count is not even observable as metadata.
+      </>
+    ),
   },
   {
     q: "Can I use Flowvault offline?",
@@ -934,21 +963,30 @@ const COMPANY: QA[] = [
     q: "I want to support Flowvault. What helps?",
     a: (
       <>
-        <Strong>Direct crypto donations</Strong> are the most privacy-safe
-        way. The{" "}
+        <Strong>Crypto donations</Strong> are the main channel. The{" "}
         <Link href={DONATE_PATH} className="text-accent hover:underline">
           /donate
         </Link>{" "}
-        page lists wallet addresses for Bitcoin, Ethereum, Litecoin, Monero,
-        USDT (TRC-20 and ERC-20), and Solana &mdash; no sign-up, no email,
-        no middleman. Your browser talks directly to the blockchain; we
-        learn nothing about you. Even the equivalent of a coffee genuinely
-        helps.
+        page embeds the{" "}
+        <a
+          href="https://nowpayments.io"
+          target="_blank"
+          rel="noreferrer"
+          className="text-accent hover:underline"
+        >
+          NOWPayments
+        </a>{" "}
+        donation widget: pick any of ~100+ coins (Bitcoin, Ethereum,
+        Litecoin, Monero, USDT on TRC-20 or ERC-20, Solana, and many
+        more), the widget generates a one-time deposit address, and
+        your wallet sends funds directly. <Strong>No donor sign-up, no
+        email required.</Strong> Even the equivalent of a coffee
+        genuinely helps.
         <br />
         <br />
-        Not in a position to donate? Use Flowvault, tell someone who needs
-        it, star the GitHub repo, file a bug, or submit a PR. All of those
-        matter just as much.
+        Not in a position to donate? Use Flowvault, tell someone who
+        needs it, star the GitHub repo, file a bug, or submit a PR. All
+        of those matter just as much.
       </>
     ),
   },
@@ -966,16 +1004,26 @@ const COMPANY: QA[] = [
     ),
   },
   {
-    q: "Why not use Plisio, NOWPayments, or a similar crypto gateway?",
+    q: "Why NOWPayments specifically, and what does it see about me?",
     a: (
       <>
-        Because those gateways &mdash; even though they handle crypto &mdash;
-        still collect a donor <Strong>email</Strong> for receipts, which
-        contradicts Flowvault&apos;s whole pitch. Raw wallet addresses are
-        the only way to accept money without learning anything about the
-        sender. We display them as plain text and QR codes; your browser
-        never makes a network request to a payment processor, because there
-        isn&apos;t one.
+        NOWPayments&apos; donation widget is one of the few processors
+        that lets a donor contribute <Strong>without creating an
+        account or providing an email</Strong> &mdash; receipts are
+        optional and only needed if the donor wants one. It also
+        generates a fresh deposit address per donation, so later donors
+        can&apos;t cross-reference each other on-chain. On our side we
+        just receive the forwarded funds.
+        <br />
+        <br />
+        What NOWPayments sees on the donor side: your IP and your
+        browser when you interact with their widget (same as any
+        website you load). They don&apos;t require an email, and
+        they don&apos;t require KYC for a donation. If that isn&apos;t
+        private enough for you, load the page through Tor or a VPN
+        &mdash; both work &mdash; and send Monero, which hides amount
+        and identity at the protocol level. We don&apos;t receive any
+        of that metadata either way.
       </>
     ),
   },

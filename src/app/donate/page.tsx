@@ -1,14 +1,19 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
-import { APP_URL, DONATE_ADDRESSES, GITHUB_URL } from "@/lib/config";
-import { AddressCard } from "@/components/donate/AddressCard";
-import { Heart, Shield, EyeOff } from "lucide-react";
+import {
+  APP_URL,
+  GITHUB_URL,
+  NOWPAYMENTS_API_KEY_URL,
+  NOWPAYMENTS_DONATION_URL,
+  NOWPAYMENTS_EMBED_URL,
+} from "@/lib/config";
+import { Heart, Shield, EyeOff, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 const DONATE_TITLE =
-  "Donate to Flowvault — direct crypto, no email, no middleman";
+  "Donate to Flowvault — anonymous crypto donations via NOWPayments";
 const DONATE_DESCRIPTION =
-  "Support Flowvault with a direct Bitcoin, Monero, Ethereum, Litecoin, USDT, or Solana donation. No middleman, no email, no receipts — consistent with how everything else here works.";
+  "Support Flowvault with a crypto donation in any of 100+ coins (BTC, ETH, LTC, XMR, USDT, SOL and more). Processed by NOWPayments' donation widget — no sign-up, no email required from donors.";
 
 export const metadata: Metadata = {
   title: DONATE_TITLE,
@@ -16,6 +21,7 @@ export const metadata: Metadata = {
   keywords: [
     "Flowvault donate",
     "crypto donation",
+    "NOWPayments donation",
     "Monero donation",
     "Bitcoin donation",
     "privacy-respecting donation",
@@ -34,45 +40,7 @@ export const metadata: Metadata = {
   },
 };
 
-interface CoinMeta {
-  key: keyof typeof DONATE_ADDRESSES;
-  name: string;
-  symbol: string;
-  /** Network / chain note for coins that exist on multiple chains. */
-  chain?: string;
-  /** Optional highlight (we tag Monero as the max-privacy option). */
-  accent?: string;
-}
-
-const COINS: CoinMeta[] = [
-  {
-    key: "xmr",
-    name: "Monero",
-    symbol: "XMR",
-    chain: "Monero mainnet",
-    accent: "Most private option",
-  },
-  { key: "btc", name: "Bitcoin", symbol: "BTC", chain: "Bitcoin mainnet" },
-  { key: "eth", name: "Ethereum", symbol: "ETH", chain: "Ethereum mainnet" },
-  { key: "ltc", name: "Litecoin", symbol: "LTC", chain: "Litecoin mainnet" },
-  {
-    key: "usdt_trc20",
-    name: "Tether",
-    symbol: "USDT",
-    chain: "TRC-20 (Tron) — low fees",
-  },
-  {
-    key: "usdt_erc20",
-    name: "Tether",
-    symbol: "USDT",
-    chain: "ERC-20 (Ethereum)",
-  },
-  { key: "sol", name: "Solana", symbol: "SOL", chain: "Solana mainnet" },
-];
-
 export default function DonatePage() {
-  const available = COINS.filter((c) => DONATE_ADDRESSES[c.key]);
-
   return (
     <>
       <Navbar />
@@ -86,7 +54,8 @@ export default function DonatePage() {
               Support Flowvault
             </h1>
             <p className="mt-2 text-muted">
-              Directly to a wallet. No middleman, no email, no receipts.
+              Donate in 100+ cryptocurrencies. No sign-up, no email
+              required from donors.
             </p>
           </div>
         </div>
@@ -96,57 +65,143 @@ export default function DonatePage() {
             Flowvault doesn&apos;t run ads, sell data, or ask for your email.
             That means the usual ways an app pays for itself aren&apos;t
             available to us &mdash; which is the whole point. Donations cover
-            Firebase hosting, domain &amp; TLS, the drand beacon monitoring we
-            use for time-locked notes, and continued development.
+            Firebase hosting, domain &amp; TLS, the drand beacon monitoring
+            we use for time-locked notes, and continued development.
           </p>
           <p className="mt-3">
-            We deliberately <Strong>do not use payment gateways</Strong> like
-            Plisio or NOWPayments, because even their &ldquo;crypto&rdquo;
-            flows usually ask donors for an email for a receipt. That would
-            contradict the rest of Flowvault. Instead, the addresses below
-            are raw wallets we control, displayed statically. Your browser
-            talks directly to the blockchain &mdash; nobody at Flowvault
-            learns anything about you.
+            We use{" "}
+            <a
+              href="https://nowpayments.io"
+              target="_blank"
+              rel="noreferrer"
+              className="text-accent hover:underline"
+            >
+              NOWPayments
+            </a>{" "}
+            as the crypto processor. Their donation widget accepts ~100+
+            coins, generates a fresh deposit address per donation (so
+            later donors can&apos;t correlate addresses across
+            contributions), and <Strong>does not require donors to
+            create an account or provide an email</Strong>. If you want
+            the most private option, send Monero (XMR) &mdash; it hides
+            amounts, senders, and receivers at the protocol level.
           </p>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <Pill icon={<Shield size={14} />} text="No email" />
-            <Pill icon={<EyeOff size={14} />} text="No middleman" />
-            <Pill icon={<Heart size={14} />} text="No receipts" />
+            <Pill icon={<Shield size={14} />} text="No donor account" />
+            <Pill icon={<EyeOff size={14} />} text="Fresh address each time" />
+            <Pill icon={<Heart size={14} />} text="100+ coins" />
           </div>
         </section>
 
-        {available.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <section className="mt-10 space-y-4">
-            <h2 className="text-lg font-semibold">Wallet addresses</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {available.map((coin) => (
-                <AddressCard
-                  key={`${coin.key}`}
-                  name={coin.name}
-                  symbol={coin.symbol}
-                  chain={coin.chain}
-                  accent={coin.accent}
-                  address={DONATE_ADDRESSES[coin.key]}
-                />
-              ))}
+        <section className="mt-10">
+          <h2 className="text-lg font-semibold">Donate</h2>
+          <p className="mt-1 text-xs text-muted">
+            Pick a coin and an amount. The widget gives you a one-time
+            deposit address &mdash; your browser sends funds directly to
+            the blockchain from there.
+          </p>
+
+          <div className="mt-4 flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+            <div className="w-full shrink-0 sm:w-[346px]">
+              <iframe
+                src={NOWPAYMENTS_EMBED_URL}
+                width="346"
+                height="623"
+                frameBorder="0"
+                scrolling="no"
+                title="Flowvault crypto donation widget (NOWPayments)"
+                style={{ overflowY: "hidden" }}
+                className="mx-auto block rounded-xl border border-border bg-background-elev"
+              />
+              <p className="mt-2 text-center text-[11px] text-muted">
+                Widget not loading? Some ad-blockers filter
+                nowpayments.io.
+              </p>
             </div>
-          </section>
-        )}
+
+            <div className="flex-1 space-y-4 text-sm text-muted">
+              <div>
+                <p className="text-foreground font-medium">
+                  Prefer a full-page flow?
+                </p>
+                <p className="mt-1">
+                  Open the donation page in a new tab &mdash; same
+                  widget, more room to read it:
+                </p>
+                <a
+                  href={NOWPAYMENTS_DONATION_URL}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition hover:brightness-110"
+                >
+                  Open donation page <ExternalLink size={14} />
+                </a>
+                <p className="mt-2 text-[11px] text-muted break-all">
+                  Short link:{" "}
+                  <a
+                    href={NOWPAYMENTS_DONATION_URL}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-accent hover:underline"
+                  >
+                    {NOWPAYMENTS_DONATION_URL.replace(/^https?:\/\//, "")}
+                  </a>
+                </p>
+              </div>
+
+              <div>
+                <p className="text-foreground font-medium">Backup link</p>
+                <p className="mt-1">
+                  If the vanity link ever goes down, this one goes
+                  directly to our donation endpoint:
+                </p>
+                <p className="mt-1 text-[11px] break-all">
+                  <a
+                    href={NOWPAYMENTS_API_KEY_URL}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-accent hover:underline"
+                  >
+                    {NOWPAYMENTS_API_KEY_URL.replace(/^https?:\/\//, "")}
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <section className="mt-10 rounded-2xl border border-border bg-background-elev p-5 text-sm text-muted">
-          <h3 className="text-foreground font-medium">
-            A note on Monero vs everything else
-          </h3>
-          <p className="mt-2">
-            Bitcoin, Ethereum, Litecoin, USDT, and Solana are all
-            pseudonymous: anyone who later learns the donation address can
-            see the full history of donations to it. Monero is different
-            &mdash; by design, the amount, sender, and receiver of an XMR
-            transaction are cryptographically hidden. If you want the most
-            private way to donate, choose Monero.
-          </p>
+          <h3 className="text-foreground font-medium">Privacy notes</h3>
+          <ul className="mt-2 list-disc space-y-1.5 pl-5">
+            <li>
+              <Strong>Donors don&apos;t need an account.</Strong> The
+              NOWPayments donation widget lets anyone contribute
+              without signing up. Receipts are optional &mdash; only
+              required if the donor wants one for themselves.
+            </li>
+            <li>
+              <Strong>
+                Fresh addresses per donation
+              </Strong>
+              . The widget generates a one-time deposit address for
+              each session, so two donors looking at the same page see
+              different addresses and can&apos;t cross-reference each
+              other on-chain.
+            </li>
+            <li>
+              <Strong>We see no donor metadata.</Strong> On our side we
+              receive the forwarded funds and aggregate totals &mdash;
+              not an IP, email, or identity. You&apos;re free to donate
+              through Tor or a VPN; NOWPayments supports both.
+            </li>
+            <li>
+              <Strong>Choose Monero for maximum privacy.</Strong>{" "}
+              Bitcoin, Ethereum, Litecoin, USDT, and Solana are{" "}
+              <em>pseudonymous</em>: anyone who later learns a donation
+              address can trace its history. Monero hides amounts,
+              senders, and receivers cryptographically.
+            </li>
+          </ul>
         </section>
 
         <section className="mt-10 rounded-2xl border border-border bg-background-elev p-5 text-sm text-muted">
@@ -165,7 +220,8 @@ export default function DonatePage() {
               starring the repo
             </a>
             , filing a thoughtful issue, or sending a PR all help the
-            project real-world as much as a few dollars does. We mean that.
+            project real-world as much as a few dollars does. We mean
+            that.
           </p>
           <p className="mt-3">
             And thank you, either way.{" "}
@@ -177,7 +233,7 @@ export default function DonatePage() {
         </section>
       </main>
       <footer className="border-t border-border/60 py-6 text-center text-xs text-muted">
-        Flowvault · part of the Flowdesk family
+        Flowvault &middot; part of the Flowdesk family
       </footer>
     </>
   );
@@ -194,30 +250,4 @@ function Pill({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 function Strong({ children }: { children: React.ReactNode }) {
   return <strong className="text-foreground">{children}</strong>;
-}
-
-function EmptyState() {
-  return (
-    <section className="mt-10 rounded-2xl border border-dashed border-border bg-background-elev p-6 text-sm text-muted">
-      <p className="text-foreground font-medium">
-        Donation addresses not yet configured
-      </p>
-      <p className="mt-2">
-        The site operator hasn&apos;t set any wallet addresses in{" "}
-        <code className="rounded bg-background-elev-2 px-1.5 py-0.5 text-xs">
-          .env.local
-        </code>{" "}
-        yet. If this is your own deployment, set one or more of:
-      </p>
-      <pre className="mt-3 overflow-x-auto rounded-lg bg-background-elev-2 p-3 text-[11px] text-foreground">
-{`NEXT_PUBLIC_BTC_ADDRESS=...
-NEXT_PUBLIC_ETH_ADDRESS=...
-NEXT_PUBLIC_LTC_ADDRESS=...
-NEXT_PUBLIC_XMR_ADDRESS=...
-NEXT_PUBLIC_USDT_TRC20_ADDRESS=...
-NEXT_PUBLIC_USDT_ERC20_ADDRESS=...
-NEXT_PUBLIC_SOL_ADDRESS=...`}
-      </pre>
-    </section>
-  );
 }

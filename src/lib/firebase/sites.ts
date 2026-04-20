@@ -89,6 +89,47 @@ function siteRef(siteId: string) {
   return doc(db(), COLLECTION, siteId);
 }
 
+/**
+ * Lightweight read that returns only fields needed to recover from a
+ * save conflict: the current `version`, the full `ciphertext` (so the
+ * client can re-derive the open slot and re-encrypt), and the current
+ * deadman record (so the editor can keep its release/heartbeat state
+ * in sync). Intentionally smaller than a full `fetchSite` to make
+ * clear this is a hot-path recovery call.
+ */
+export interface SiteRefreshResult {
+  version: number;
+  ciphertext: Uint8Array;
+  deadman: DeadmanRecord | null;
+}
+
+export async function fetchSiteRefresh(
+  siteId: string,
+): Promise<SiteRefreshResult | null> {
+  const snap = await getDoc(siteRef(siteId));
+  if (!snap.exists()) return null;
+  const data = snap.data() as {
+    ciphertext: Bytes;
+    version: number;
+    deadman?: DeadmanWire | null;
+  };
+  return {
+    version: data.version,
+    ciphertext: data.ciphertext.toUint8Array(),
+    deadman: data.deadman
+      ? {
+          wrappedKey: data.deadman.wrappedKey.toUint8Array(),
+          beneficiarySalt: data.deadman.beneficiarySalt.toUint8Array(),
+          intervalMs: data.deadman.intervalMs,
+          graceMs: data.deadman.graceMs,
+          lastHeartbeatAt: data.deadman.lastHeartbeatAt ?? null,
+          released: data.deadman.released,
+          releasedAt: data.deadman.releasedAt ?? null,
+        }
+      : null,
+  };
+}
+
 export async function fetchSite(siteId: string): Promise<SiteRecord | null> {
   const snap = await getDoc(siteRef(siteId));
   if (!snap.exists()) return null;

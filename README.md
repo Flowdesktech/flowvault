@@ -43,6 +43,7 @@ nearly every dimension that matters for a zero-knowledge notepad.
 ### Features you actually want
 
 - **Hidden-volume vaults** — the headline feature. One URL, N notebooks, one blob. If someone coerces a password out of you at a border crossing, you hand over the decoy. Cryptographically indistinguishable from a single-notebook vault.
+- **Multi-notebook tabs** — each password now unlocks a *workspace*, not just one page. Add tabs, rename them, reorder them, delete them. Everything lives inside the same encrypted slot, so the tab list, titles, and contents are all zero-knowledge — the server sees one opaque blob, same as always. Decoy passwords get their own independent tab set in their own slot; adding tabs in your real notebook doesn't touch the decoy and vice versa.
 - **Time-locked notes** — encrypt a message to a future date using the [drand](https://drand.love) public randomness beacon and the [tlock](https://github.com/drand/tlock-js) scheme (identity-based encryption over BLS12-381). The ciphertext is stored opaquely; the decryption key literally does not exist until drand's network publishes the target round signature. Nobody — not us, not the sender, not a subpoena — can unlock it early. Share links look like `flowvault.flowdesk.tech/t/<id>`. **Optional password gate:** tick *"Also require a password to read"* and the note is double-wrapped — an inner AES-256-GCM layer keyed by Argon2id(password), and an outer tlock layer keyed to the unlock round. Leaked link alone can't read it; the reader needs both the time to pass and the password (shared out-of-band).
 - **Encrypted Send** — one-shot, self-destructing notes for sharing a password, an API key, a recovery phrase, or any snippet you'd rather not sit in chat history. AES-256-GCM encrypted in the browser; the 256-bit key travels in the URL fragment (`#k=...`), which browsers never send to servers. Pick an expiry (up to 30 days) and a view count (default 1); the server hard-deletes the ciphertext the moment the last view is consumed, and a scheduled sweep removes anything past its TTL. Reads go through a Cloud Function so the view counter is atomic — clients can't read the document directly (rules deny it). **Optional password gate** on top, using the same FVPW frame as time-locks, so even a leaked link needs an out-of-band password. Share links look like `flowvault.flowdesk.tech/send/<id>#k=<key>`.
 - **Dead-man's switch** — arm a vault so it auto-releases to a pre-chosen beneficiary password if you stop saving for the interval + grace you configure. Weekly / monthly / quarterly / yearly presets. The beneficiary key wraps your master key client-side; the server just schedules the release. Hourly Cloud Function sweeps expired configs; the Firestore rules forbid clients from faking a release or extending one they can't actually open.
@@ -126,10 +127,11 @@ Shipped:
 - Decoy-password management UI ("Add password" in the editor)
 - Dead-man's switch: configure / heartbeat-on-save / scheduled release / beneficiary unlock flow
 - drand-backed time-locked notes (`/timelock/new` compose → `/t/{id}` view) via [tlock-js](https://github.com/drand/tlock-js)
+- Encrypted Send: one-shot, self-destructing notes (`/send/new` → `/send/{id}#k=<key>`)
+- Multi-notebook tabs per slot — one password, many tabs, all inside the same encrypted blob
 
 In progress / planned:
 
-- Multi-slot notebooks (currently one slot = one notebook)
 - Markdown preview + code syntax highlighting
 - PWA / offline mode
 - Signed build hashes + transparency log
@@ -203,39 +205,38 @@ Flowvault is built on the honor system. We don't show ads, sell data, or ask
 for your email — by design, not oversight. Those are the usual ways an app
 pays for itself, and all of them conflict with being zero-knowledge.
 
-### Why direct wallet addresses, not Plisio / NOWPayments / etc.
+### Crypto donations via NOWPayments
 
-We evaluated crypto payment gateways (Plisio, NOWPayments, CoinGate) and
-passed. Even though those services handle crypto, their donation flows
-**still collect a donor email** for receipts — which contradicts the
-product. Instead, Flowvault publishes raw wallet addresses on `/donate`:
+Donations go through the [NOWPayments](https://nowpayments.io) donation
+widget, embedded on `/donate`. We picked it because it's one of the
+very few processors where **a donor can contribute without creating an
+account or providing an email** — receipts are optional, only generated
+if the donor wants one. The widget also generates a fresh deposit
+address per donation, so two donors can't cross-reference each other
+on-chain.
 
-- No middleman — your wallet talks directly to the blockchain
-- No email or personal info ever requested
-- No third-party JavaScript loaded on the donate page
-- Monero supported for donors who want amounts + identities cryptographically
-hidden, not merely pseudonymous
+- ~100+ coins supported (BTC, ETH, LTC, XMR, USDT on TRC-20 / ERC-20, SOL, and many more)
+- Monero (XMR) available for donors who want amount + identity cryptographically hidden, not merely pseudonymous
+- No donor sign-up, no donor email required
+- Tor / VPN friendly on the donor side
+- Short / vanity link: `https://nowpayments.io/donation/flowdesktech`
 
-Every traditional payment rail (cards, PayPal, Stripe) requires identifying
-info to receive money. Crypto addresses are the only option that lets us
-receive your support without also receiving a dossier on you.
+Every traditional payment rail (cards, PayPal, Stripe) requires
+identifying info to receive money. A processor with an anonymous
+donation flow is the closest match to the rest of Flowvault's model.
 
-### Configuring addresses
+### Configuring the donation widget
 
-Set any of the following in `.env.local` (leave empty to hide that coin):
+Set these in `.env.local` (they aren't secrets — both are embedded in
+the public bundle and visible in the iframe `src`):
 
 ```
-NEXT_PUBLIC_BTC_ADDRESS=
-NEXT_PUBLIC_ETH_ADDRESS=
-NEXT_PUBLIC_LTC_ADDRESS=
-NEXT_PUBLIC_XMR_ADDRESS=
-NEXT_PUBLIC_USDT_TRC20_ADDRESS=
-NEXT_PUBLIC_USDT_ERC20_ADDRESS=
-NEXT_PUBLIC_SOL_ADDRESS=
+NEXT_PUBLIC_NOWPAYMENTS_API_KEY=d1809dbe-265d-44fc-af65-16cce1b7186b
+NEXT_PUBLIC_NOWPAYMENTS_DONATION_URL=https://nowpayments.io/donation/flowdesktech
 ```
 
-The `/donate` page renders QR codes and copy buttons for whichever
-addresses are set.
+If you fork Flowvault and want donations to go to your own NOWPayments
+account, replace both values with your own api key and vanity slug.
 
 ### Non-crypto ways to help
 

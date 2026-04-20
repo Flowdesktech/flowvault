@@ -19,6 +19,7 @@ import {
   Bitcoin,
   Heart,
   Send,
+  Notebook,
 } from "lucide-react";
 
 /**
@@ -63,6 +64,7 @@ const HOMEPAGE_JSON_LD = {
         "Client-side Argon2id key derivation",
         "AES-256-GCM authenticated encryption",
         "Plausible-deniability hidden-volume format",
+        "Multi-notebook tabs per password (all inside one encrypted slot)",
         "Client-wrapped dead-man's switch",
         "Drand-backed time-locked notes",
         "Encrypted Send: self-destructing, view-capped one-time notes",
@@ -142,6 +144,20 @@ export default function HomePage() {
             ctaLabel="Lock a message"
           />
           <Feature
+            icon={<Notebook size={18} />}
+            title="Multi-notebook tabs"
+            body={
+              <>
+                One password unlocks a whole workspace, not a single
+                page. Add tabs, rename them, reorder them. Every tab
+                lives inside the same encrypted slot, so titles and
+                content are just as zero-knowledge as the notes
+                themselves. Decoy passwords get their own independent
+                tab set in their own slot.
+              </>
+            }
+          />
+          <Feature
             icon={<Send size={18} />}
             title="Encrypted Send"
             body={
@@ -191,6 +207,11 @@ export default function HomePage() {
               icon={<EyeOff size={16} />}
               title="Hidden volumes"
               body="The killer feature. Hand over a decoy password under coercion and your real notebook stays invisible. No competing web notepad does this."
+            />
+            <Reason
+              icon={<Notebook size={16} />}
+              title="Multi-notebook tabs per password"
+              body="A password isn't one page — it's a whole workspace. Add tabs, rename, reorder, delete. Titles and contents are encrypted together inside the slot, so the tab list is as zero-knowledge as the notes. Decoy passwords unlock their own independent tab sets."
             />
             <Reason
               icon={<Layers size={16} />}
@@ -284,6 +305,12 @@ export default function HomePage() {
                   label="Two-tab edit safety"
                   ours="CAS version counter"
                   theirs="Last-writer-wins"
+                  oursGood
+                />
+                <Row
+                  label="Multi-notebook tabs per password"
+                  ours="Yes (inside the same encrypted slot; titles + order are encrypted too)"
+                  theirs="One note per page (tabs, if any, are per-URL)"
                   oursGood
                 />
                 <Row
@@ -461,30 +488,38 @@ export default function HomePage() {
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-muted">
                 Flowvault runs on the honor system. We don&apos;t show ads,
-                we don&apos;t sell data, and we don&apos;t ask for your
-                email &mdash; not even to accept donations. That&apos;s a
-                deliberate choice, and it means the usual ways an app pays
-                for itself aren&apos;t available to us. If Flowvault has
-                earned a spot in your workflow, a small crypto donation
-                keeps the servers paid and the features shipping.
+                we don&apos;t sell data, and we don&apos;t require an
+                account &mdash; not even to accept donations. That&apos;s
+                a deliberate choice, and it means the usual ways an app
+                pays for itself aren&apos;t available to us. If Flowvault
+                has earned a spot in your workflow, a small crypto
+                donation keeps the servers paid and the features
+                shipping.
               </p>
               <p className="mt-3 text-sm leading-relaxed text-muted">
-                We deliberately skip payment gateways like Plisio and
-                NOWPayments, because even their crypto flows ask donors for
-                an email for a receipt. Instead we publish raw wallet
-                addresses you can send to directly &mdash; no middleman, no
-                forms, no trace. Even the donation stays zero-knowledge.
+                Donations go through the{" "}
+                <a
+                  href="https://nowpayments.io"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-accent hover:underline"
+                >
+                  NOWPayments
+                </a>{" "}
+                donation widget &mdash; 100+ coins, a fresh deposit
+                address for each donation, and no donor sign-up or email
+                required. Pick Monero if you want the most private
+                option.
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Link
                   href={DONATE_PATH}
                   className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground transition hover:brightness-110"
                 >
-                  <Bitcoin size={16} /> View donation addresses
+                  <Bitcoin size={16} /> Donate with crypto
                 </Link>
                 <span className="text-xs text-muted">
-                  BTC, ETH, LTC, USDT, SOL &middot; or Monero for the most
-                  private option.
+                  BTC, ETH, LTC, XMR, USDT, SOL &middot; and ~100 more.
                 </span>
               </div>
               <p className="mt-4 text-xs leading-relaxed text-muted">

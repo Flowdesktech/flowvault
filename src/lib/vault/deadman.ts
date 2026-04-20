@@ -46,6 +46,10 @@ import {
   openWithKey,
   type VolumeParams,
 } from "@/lib/crypto/volume";
+import {
+  deserializeBundle,
+  type NotebookBundle,
+} from "@/lib/vault/notebooks";
 
 export const BENEFICIARY_SALT_BYTES = 16;
 export const MASTER_KEY_BYTES = 32;
@@ -109,7 +113,7 @@ export interface BeneficiaryUnlockResult {
   kind: "unlocked";
   masterKey: Uint8Array;
   slotIndex: number;
-  content: string;
+  bundle: NotebookBundle;
   blob: Uint8Array;
   version: number;
   kdfSalt: Uint8Array;
@@ -168,7 +172,7 @@ export async function unlockReleased(input: {
     kind: "unlocked",
     masterKey,
     slotIndex: found.index,
-    content: utf8Decode(found.content),
+    bundle: deserializeBundle(utf8Decode(found.content)),
     blob: site.ciphertext,
     version: site.version,
     kdfSalt: site.kdfSalt,

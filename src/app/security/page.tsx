@@ -109,6 +109,37 @@ export default function SecurityPage() {
           would break deniability).
         </p>
 
+        <H2>Notebook bundle inside each slot</H2>
+        <p className="mt-2 text-muted">
+          A slot&apos;s plaintext (after AES-GCM decryption) isn&apos;t a
+          single string &mdash; it&apos;s a JSON-encoded{" "}
+          <em>notebook bundle</em>: an ordered list of tabs
+          (<Code>{"{ id, title, content }"}</Code>) plus the currently
+          active tab id. This is what gives one password many tabs
+          without adding any server-side fields. The bundle carries its
+          own version stamp (<Code>v: 1</Code>) inside the slot&apos;s
+          frame, independent of the lower frame-format version, so we
+          can evolve the tab schema without touching the crypto layer.
+        </p>
+        <p className="mt-2 text-muted">
+          Security consequences: tab <em>titles</em> are as sensitive as
+          tab contents &mdash; they live in the same AEAD envelope. The
+          tab count, tab names, and active tab are all zero-knowledge;
+          the server sees only the same fixed-size ciphertext blob it
+          saw before. Adding, renaming, or reordering a tab changes the
+          blob exactly like a regular save would, and is subject to the
+          same caveat noted below under &ldquo;Plausible deniability
+          (and its limits)&rdquo; &mdash; a persistent network observer
+          watching repeated blob snapshots will see the slot mutate.
+        </p>
+        <p className="mt-2 text-muted">
+          Soft caps: 32 tabs per slot, 80-character titles. The hard cap
+          is the slot&apos;s byte capacity (~8 KiB after AEAD + frame
+          overhead), enforced uniformly against the serialized bundle
+          at save time. A single too-long tab and a dozen medium tabs
+          that collectively overflow are rejected identically.
+        </p>
+
         <H2>Plausible deniability (and its limits)</H2>
         <p className="mt-2 text-muted">
           A password you hand over under coercion opens that password&apos;s

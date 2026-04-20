@@ -105,7 +105,7 @@ export function VaultView({ slug }: { slug: string }) {
             volume: res.volume,
             blob: res.blob,
             version: res.version,
-            content: res.content,
+            bundle: res.bundle,
             deadman: res.deadman,
             beneficiary: true,
           });
@@ -217,7 +217,7 @@ function toVault(r: OpenResult, beneficiary: boolean) {
     volume: r.volume,
     blob: r.blob,
     version: r.version,
-    content: r.content,
+    bundle: r.bundle,
     deadman: r.deadman,
     beneficiary,
   };

@@ -44,23 +44,38 @@ export const CONTACT_EMAIL = envOr(
 );
 
 /**
- * Wallet addresses for direct crypto donations. We intentionally do NOT use
- * a payment gateway (Plisio, NOWPayments, CoinGate, etc.) because those
- * services collect a donor email or IP for receipts, which contradicts the
- * rest of Flowvault's privacy model. Direct addresses mean zero middleman,
- * zero metadata.
+ * NOWPayments donation configuration.
  *
- * Leave an env var empty (or unset) to hide that coin on the donate page.
+ * We accept donations through NOWPayments' donation widget rather than
+ * maintaining raw wallet addresses per-coin: the widget lets donors
+ * pick from ~100+ coins, generates a fresh address per donation (so
+ * past donors can't correlate addresses), and does not require a donor
+ * email. Neither the `api_key` nor the vanity slug are secrets &mdash;
+ * both are embedded publicly by design on the donate page.
+ *
+ * `NEXT_PUBLIC_NOWPAYMENTS_API_KEY` drives the iframe widget; the
+ * vanity URL (`NEXT_PUBLIC_NOWPAYMENTS_DONATION_URL`) gives donors a
+ * nicer shareable "open in new tab" link.
  */
-export const DONATE_ADDRESSES = {
-  btc: process.env.NEXT_PUBLIC_BTC_ADDRESS ?? "",
-  eth: process.env.NEXT_PUBLIC_ETH_ADDRESS ?? "",
-  ltc: process.env.NEXT_PUBLIC_LTC_ADDRESS ?? "",
-  xmr: process.env.NEXT_PUBLIC_XMR_ADDRESS ?? "",
-  usdt_trc20: process.env.NEXT_PUBLIC_USDT_TRC20_ADDRESS ?? "",
-  usdt_erc20: process.env.NEXT_PUBLIC_USDT_ERC20_ADDRESS ?? "",
-  sol: process.env.NEXT_PUBLIC_SOL_ADDRESS ?? "",
-} as const;
+export const NOWPAYMENTS_API_KEY = envOr(
+  process.env.NEXT_PUBLIC_NOWPAYMENTS_API_KEY,
+  "d1809dbe-265d-44fc-af65-16cce1b7186b",
+);
+
+export const NOWPAYMENTS_DONATION_URL = envOr(
+  process.env.NEXT_PUBLIC_NOWPAYMENTS_DONATION_URL,
+  "https://nowpayments.io/donation/flowdesktech",
+);
+
+/**
+ * Fallback URL to NOWPayments' generic (api_key-based) donation page.
+ * Used when a vanity slug isn't configured, or as a backup "open in
+ * new tab" link alongside the vanity one.
+ */
+export const NOWPAYMENTS_API_KEY_URL = `https://nowpayments.io/donation?api_key=${NOWPAYMENTS_API_KEY}`;
+
+/** Source URL for the embedded donation-widget iframe. */
+export const NOWPAYMENTS_EMBED_URL = `https://nowpayments.io/embeds/donation-widget?api_key=${NOWPAYMENTS_API_KEY}`;
 
 /** Path to the on-site donate page. */
 export const DONATE_PATH = "/donate";

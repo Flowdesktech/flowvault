@@ -23,6 +23,12 @@ import {
   updateSiteCiphertext,
   type DeadmanRecord,
 } from "@/lib/firebase/sites";
+import {
+  createBundle,
+  deserializeBundle,
+  serializeBundle,
+  type NotebookBundle,
+} from "@/lib/vault/notebooks";
 
 export const SALT_BYTES = 16;
 
@@ -36,7 +42,7 @@ export interface OpenResult {
   slotIndex: number;
   blob: Uint8Array;
   version: number;
-  content: string;
+  bundle: NotebookBundle;
   deadman: DeadmanRecord | null;
 }
 
@@ -77,7 +83,7 @@ export async function tryOpenVault(
     slotIndex: found.index,
     blob: site.ciphertext,
     version: site.version,
-    content: utf8Decode(found.content),
+    bundle: deserializeBundle(utf8Decode(found.content)),
     deadman: site.deadman,
   };
 }
@@ -90,7 +96,7 @@ export async function tryOpenVault(
 export async function createVault(
   slug: string,
   password: string,
-  initialContent = "",
+  initialBundle?: NotebookBundle,
 ): Promise<OpenResult> {
   const siteId = await deriveSiteId(slug);
   const existing = await fetchSite(siteId);
@@ -106,8 +112,9 @@ export async function createVault(
   };
   const slotIndex = await slotIndexFor(masterKey, volume);
 
+  const bundle = initialBundle ?? createBundle();
   const blank = freshBlob(volume);
-  const initialBytes = utf8Encode(initialContent);
+  const initialBytes = utf8Encode(serializeBundle(bundle));
   if (initialBytes.length > slotCapacity(volume)) {
     throw new Error("initial content exceeds slot capacity");
   }
@@ -125,7 +132,7 @@ export async function createVault(
     slotIndex,
     blob,
     version: 1,
-    content: initialContent,
+    bundle,
     deadman: null,
   };
 }
@@ -137,7 +144,7 @@ export interface SaveInput {
   volume: VolumeParams;
   previousBlob: Uint8Array;
   expectedVersion: number;
-  content: string;
+  bundle: NotebookBundle;
 }
 
 export type SaveResult =
@@ -146,11 +153,13 @@ export type SaveResult =
   | { kind: "too-large"; maxBytes: number };
 
 /**
- * Save a modified notebook into its slot, preserving all other slots so
- * any decoy/secondary passwords remain intact.
+ * Save the current notebook bundle back into its slot. The entire
+ * bundle (all tabs, titles, contents) is serialized as JSON and stored
+ * as the slot's plaintext frame. Other slots in the blob are copied
+ * verbatim so any decoy/secondary passwords remain intact.
  */
 export async function saveVault(input: SaveInput): Promise<SaveResult> {
-  const contentBytes = utf8Encode(input.content);
+  const contentBytes = utf8Encode(serializeBundle(input.bundle));
   const max = slotCapacity(input.volume);
   if (contentBytes.length > max) {
     return { kind: "too-large", maxBytes: max };
@@ -182,7 +191,10 @@ export interface AddPasswordInput {
   kdfSalt: Uint8Array;
   volume: VolumeParams;
   newPassword: string;
+  /** Content of the first notebook in the new slot's bundle. */
   newContent: string;
+  /** Title of that first notebook. Defaults to "Notebook 1". */
+  newNotebookTitle?: string;
 }
 
 export type AddPasswordResult =
@@ -227,7 +239,11 @@ export async function addDecoyPassword(
     return { kind: "already-set-up", slotIndex: existing.index };
   }
 
-  const bytes = utf8Encode(input.newContent);
+  const newBundle = createBundle({
+    title: input.newNotebookTitle,
+    content: input.newContent,
+  });
+  const bytes = utf8Encode(serializeBundle(newBundle));
   const max = slotCapacity(input.volume);
   if (bytes.length > max) return { kind: "too-large", maxBytes: max };
 

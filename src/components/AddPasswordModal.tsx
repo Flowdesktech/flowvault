@@ -72,10 +72,12 @@ export function AddPasswordModal({ open, onClose }: Props) {
       newContent: content,
     });
     if (res.kind === "added") {
+      // We only changed a different slot; our own bundle is unchanged.
+      // Just refresh the blob + version so the next local save doesn't
+      // race the optimistic-concurrency guard.
       updateAfterSave({
         blob: res.blob,
         version: res.version,
-        content: vault.content,
       });
       setPhase({ kind: "done", slotIndex: res.slotIndex });
       return;

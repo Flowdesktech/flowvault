@@ -76,17 +76,51 @@ jobs:
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/gcp-key.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/gcp-key.json" >> "$GITHUB_ENV"
 
-      - name: Deploy Firebase backend
+      # Resolve the project-flag args once so every deploy step uses the same
+      # logic: prefer the Actions variable, fall back to .firebaserc default.
+      - name: Resolve project flags
+        id: project
+        env:
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
         run: |
-          TARGETS="${{ github.event.inputs.targets }}"
-          if [ -z "$TARGETS" ]; then
-            TARGETS="functions,firestore:rules,firestore:indexes"
+          if [ -n "$FIREBASE_PROJECT_ID" ]; then
+            echo "flags=--project $FIREBASE_PROJECT_ID" >> "$GITHUB_OUTPUT"
+            echo "Deploying to project (from vars): $FIREBASE_PROJECT_ID"
+          else
+            echo "flags=" >> "$GITHUB_OUTPUT"
+            echo "FIREBASE_PROJECT_ID var not set; relying on .firebaserc default alias"
           fi
+
+      # Firestore rules are deployed FIRST and on their own, because they are
+      # the security-critical piece: if a later target (functions) fails, we
+      # still want the new rules live. A failing functions deploy must never
+      # leave users stuck on stale/default-deny rules.
+      - name: Deploy Firestore rules
+        if: contains(github.event.inputs.targets || 'functions,firestore:rules,firestore:indexes', 'firestore:rules')
+        run: |
           npx --yes firebase-tools@latest deploy \
-            --only "$TARGETS" \
-            --project "${{ vars.FIREBASE_PROJECT_ID }}" \
-            --non-interactive \
-            --force
+            --only firestore:rules \
+            ${{ steps.project.outputs.flags }} \
+            --non-interactive --force
+
+      - name: Deploy Firestore indexes
+        if: contains(github.event.inputs.targets || 'functions,firestore:rules,firestore:indexes', 'firestore:indexes')
+        run: |
+          npx --yes firebase-tools@latest deploy \
+            --only firestore:indexes \
+            ${{ steps.project.outputs.flags }} \
+            --non-interactive --force
+
+      # Functions is last and allowed to fail without taking the whole workflow
+      # down, so the rules/indexes changes above still count as "shipped".
+      - name: Deploy Cloud Functions
+        if: contains(github.event.inputs.targets || 'functions,firestore:rules,firestore:indexes', 'functions')
+        continue-on-error: true
+        run: |
+          npx --yes firebase-tools@latest deploy \
+            --only functions \
+            ${{ steps.project.outputs.flags }} \
+            --non-interactive --force
 
       - name: Clean up credentials
         if: always()

@@ -5,23 +5,43 @@
  * they are public URLs, public addresses, or feature flags.
  */
 
+/**
+ * Read an env var, treating both `undefined` and an empty string the
+ * same way (fall back to the default).
+ *
+ * `??` only falls back on null/undefined, which bites on Vercel: it's
+ * common for a project to have `NEXT_PUBLIC_FOO` defined but set to an
+ * empty string. That would otherwise let an empty value sneak into
+ * places like `new URL(APP_URL)` and crash the build with
+ * `TypeError: Invalid URL` at `_not-found` configuration collection.
+ */
+function envOr(value: string | undefined, fallback: string): string {
+  const v = (value ?? "").trim();
+  return v.length > 0 ? v : fallback;
+}
+
 /** Canonical app origin (used for OG metadata, sitemap, share URLs). */
-export const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL ?? "https://flowvault.flowdesk.tech";
+export const APP_URL = envOr(
+  process.env.NEXT_PUBLIC_APP_URL,
+  "https://flowvault.flowdesk.tech",
+);
 
 /** Hostname shown in the slug picker, e.g. "flowvault.flowdesk.tech/s/...". */
 export const APP_HOST = APP_URL.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
-export const GITHUB_URL =
-  process.env.NEXT_PUBLIC_GITHUB_URL ??
-  "https://github.com/Flowdesktech/flowvault";
+export const GITHUB_URL = envOr(
+  process.env.NEXT_PUBLIC_GITHUB_URL,
+  "https://github.com/Flowdesktech/flowvault",
+);
 
 /**
  * Public contact address for hire / business-idea / partnership inquiries.
  * Shown in the top banner and on the donate / about pages.
  */
-export const CONTACT_EMAIL =
-  process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "contact@flowdesk.tech";
+export const CONTACT_EMAIL = envOr(
+  process.env.NEXT_PUBLIC_CONTACT_EMAIL,
+  "contact@flowdesk.tech",
+);
 
 /**
  * Wallet addresses for direct crypto donations. We intentionally do NOT use

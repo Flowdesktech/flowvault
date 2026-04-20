@@ -18,8 +18,24 @@ const TITLE =
 const DESCRIPTION =
   "A private, encrypted online notepad. Your notes never leave your browser in plaintext. Multiple passwords unlock different notebooks on the same URL — a deniable alternative to ProtectedText, Standard Notes, CryptPad, and Privnote, with a fully open-source frontend, Cloud Functions, and Firestore rules.";
 
+/**
+ * Resolve the canonical origin for `metadataBase`, falling back to the
+ * production host if `APP_URL` ever comes through misconfigured
+ * (blank / malformed / missing scheme). Without this guard, an empty
+ * or invalid `NEXT_PUBLIC_APP_URL` would throw `TypeError: Invalid URL`
+ * during `next build`'s "Collecting page data" step, most visibly on
+ * `/_not-found`.
+ */
+function safeMetadataBase(): URL {
+  try {
+    return new URL(APP_URL);
+  } catch {
+    return new URL("https://flowvault.flowdesk.tech");
+  }
+}
+
 export const metadata: Metadata = {
-  metadataBase: new URL(APP_URL),
+  metadataBase: safeMetadataBase(),
   title: {
     default: TITLE,
     template: "%s — Flowvault",

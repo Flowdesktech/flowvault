@@ -116,6 +116,26 @@ export const deadmanSweep = onSchedule(
  * &mdash; anyone who already has the send id plus the URL-fragment key
  * can just call us from curl. The allowlist is hygiene.
  */
+/**
+ * Normalize a Firestore `bytes` field to a base64 string. The admin
+ * Firestore client returns `Buffer` for bytes fields, but the `Bytes`
+ * wrapper class is also a valid representation (and is what the web
+ * SDK writes with). Accept both, plus `Uint8Array` defensively, so a
+ * future SDK change doesn&rsquo;t silently break us again.
+ *
+ * Returns null for anything we don&rsquo;t recognize so the caller can
+ * log and bail instead of throwing.
+ */
+function toBase64(value: unknown): string | null {
+  if (!value) return null;
+  if (Buffer.isBuffer(value)) return value.toString("base64");
+  if (value instanceof Uint8Array) return Buffer.from(value).toString("base64");
+  if (typeof (value as { toBase64?: () => string }).toBase64 === "function") {
+    return (value as { toBase64: () => string }).toBase64();
+  }
+  return null;
+}
+
 const CALLABLE_CORS: (string | RegExp)[] = [
   "https://flowvault.flowdesk.tech",
   "https://flowvault-cf9f2.web.app",
@@ -143,17 +163,7 @@ export const readSend = onCall(
     const ref = db.collection("sends").doc(id);
     const result = await db.runTransaction<ReadSendPayload>(async (tx) => {
       const snap = await tx.get(ref);
-      if (!snap.exists) {
-        // Log the id so the operator can grep Cloud Functions logs and
-        // cross-reference with Firestore. If the write actually
-        // committed, the doc should be visible in the console at
-        // sends/{id}. If it isn't, the likely causes are: (a) stale
-        // security rules that denied the create, (b) the sender wrote
-        // to a different Firebase project, or (c) the URL was
-        // truncated by the share channel.
-        logger.info(`readSend: not-found id=${id}`);
-        return { kind: "not-found" };
-      }
+      if (!snap.exists) return { kind: "not-found" };
       const data = snap.data()!;
 
       const expiresAt = data.expiresAt as Timestamp | undefined;
@@ -161,20 +171,28 @@ export const readSend = onCall(
         // Don't delete inside the transaction when "expired" is the
         // answer; the scheduled sweep handles it. Keeps this path
         // cheap and avoids write cost on most polls.
-        logger.info(`readSend: expired id=${id}`);
         return { kind: "expired" };
       }
 
       const viewCount = (data.viewCount as number) ?? 0;
       const maxViews = (data.maxViews as number) ?? 1;
-      if (viewCount >= maxViews) {
-        logger.info(`readSend: exhausted id=${id} views=${viewCount}/${maxViews}`);
-        return { kind: "exhausted" };
-      }
+      if (viewCount >= maxViews) return { kind: "exhausted" };
 
-      const ciphertext = data.ciphertext;
-      if (!ciphertext || typeof ciphertext.toBase64 !== "function") {
-        logger.warn(`readSend: malformed ciphertext on ${id}`);
+      // Firestore bytes fields come back as a Node.js `Buffer` in
+      // firebase-admin's Firestore client (not the web SDK's `Bytes`
+      // class), so `.toBase64()` doesn't exist. Accept either shape and
+      // normalize to base64.
+      const ciphertextBase64 = toBase64(data.ciphertext);
+      if (!ciphertextBase64) {
+        // Genuinely unexpected state — something was persisted in a
+        // shape we don't recognize. Log just the id prefix (first 6
+        // chars out of 20) so we can find the bad doc without
+        // indexing every send id in Cloud Logging. Full ids plus
+        // timestamps would be a metadata trail inconsistent with the
+        // zero-knowledge posture.
+        logger.warn(
+          `readSend: malformed ciphertext prefix=${id.slice(0, 6)} type=${typeof data.ciphertext}`,
+        );
         return { kind: "not-found" };
       }
 
@@ -190,7 +208,7 @@ export const readSend = onCall(
 
       return {
         kind: "ok",
-        ciphertextBase64: ciphertext.toBase64() as string,
+        ciphertextBase64,
         viewsRemaining: maxViews - newCount,
         lastView,
         passwordProtected: !!data.passwordProtected,

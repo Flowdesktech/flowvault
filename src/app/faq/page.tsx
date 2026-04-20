@@ -5,9 +5,9 @@ import Link from "next/link";
 import { DONATE_PATH, APP_URL } from "@/lib/config";
 
 const FAQ_TITLE =
-  "FAQ — Flowvault: encrypted online notepad, dead-man's switch, ProtectedText / Standard Notes / CryptPad / Privnote alternative";
+  "FAQ — Flowvault: encrypted online notepad, dead-man's switch, time-locked notes, Encrypted Send; ProtectedText / Standard Notes / CryptPad / Privnote / Bitwarden Send alternative";
 const FAQ_DESCRIPTION =
-  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how the dead-man's switch releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, Notesnook, Joplin, Obsidian, Bitwarden Send, and Skiff Notes.";
+  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how the dead-man's switch releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, how Encrypted Send creates self-destructing one-time links with view caps and optional passwords, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, Notesnook, Joplin, Obsidian, Bitwarden Send, 1Password Share, and Skiff Notes.";
 
 export const metadata: Metadata = {
   title: FAQ_TITLE,
@@ -19,10 +19,16 @@ export const metadata: Metadata = {
     "Standard Notes alternative",
     "CryptPad alternative",
     "Privnote alternative",
+    "Bitwarden Send alternative",
+    "1Password Share alternative",
     "dead man's switch notepad",
     "time-locked notes",
     "drand tlock",
     "plausible deniability notes",
+    "encrypted send",
+    "one-time secret link",
+    "self-destructing note",
+    "burn after reading",
   ],
   alternates: { canonical: "/faq" },
   openGraph: {
@@ -632,7 +638,7 @@ const FEATURES: QA[] = [
     ),
   },
   {
-    q: "How is this different from Privnote or other burn-after-reading links?",
+    q: "How is a time-locked note different from Privnote or other burn-after-reading links?",
     a: (
       <>
         Privnote-style services encrypt a note, put the key in a URL
@@ -643,7 +649,172 @@ const FEATURES: QA[] = [
         &mdash; can read the contents before the unlock moment. Great
         for a future-self letter, a scheduled disclosure, a
         capsule for an anniversary, or a trust-minimised release
-        commitment.
+        commitment. If what you want is the Privnote/Bitwarden-Send
+        flavour instead (share a secret that self-destructs after the
+        recipient reads it), use{" "}
+        <Link href="/send/new" className="text-accent hover:underline">
+          Encrypted Send
+        </Link>
+        .
+      </>
+    ),
+  },
+  {
+    q: "What is Encrypted Send?",
+    a: (
+      <>
+        Encrypted Send is Flowvault&rsquo;s one-shot sharing
+        primitive &mdash; the tool you reach for when you need to hand
+        someone a password, an API key, a recovery phrase, a piece of
+        medical info, or any snippet you&rsquo;d rather not leave
+        sitting in Slack / email / a password-reset thread. Paste the
+        note at{" "}
+        <Link href="/send/new" className="text-accent hover:underline">
+          /send/new
+        </Link>
+        , pick how long it should live (up to 30 days) and how many
+        times it can be opened (default: once), and share the link.
+        After the final view, the ciphertext is{" "}
+        <Strong>hard-deleted from our database</Strong> &mdash; the
+        scheduled sweep also purges anything past its TTL.
+      </>
+    ),
+  },
+  {
+    q: "How does Encrypted Send protect the note?",
+    a: (
+      <>
+        <p>Four layers:</p>
+        <ol className="mt-2 list-decimal space-y-1 pl-5">
+          <li>
+            Your browser generates a random 256-bit AES key and encrypts
+            the plaintext with AES-256-GCM (authenticated encryption,
+            so tampering is detectable).
+          </li>
+          <li>
+            The key is placed in the URL fragment (after{" "}
+            <Code>#</Code>). Browsers never send URL fragments to
+            servers, so our database sees only the opaque ciphertext
+            &mdash; we have no way to decrypt it.
+          </li>
+          <li>
+            Optionally, you can add a password. The plaintext is then
+            wrapped in an <Strong>inner</Strong> AES-GCM layer keyed by
+            Argon2id(password) before the outer AES wrap. Same
+            &ldquo;FVPW&rdquo; frame we use for time-locks.
+          </li>
+          <li>
+            The server enforces the view counter atomically through a
+            Cloud Function: reads go through <Code>readSend</Code>,
+            which decrements the counter in a transaction and deletes
+            the document the moment the last view is consumed.
+            Firestore rules deny direct reads by clients &mdash; that&rsquo;s
+            what makes the counter trustworthy.
+          </li>
+        </ol>
+      </>
+    ),
+  },
+  {
+    q: "How is Encrypted Send different from Bitwarden Send, Privnote, or 1Password&rsquo;s share link?",
+    a: (
+      <>
+        Same general idea &mdash; a one-shot encrypted link &mdash; but
+        different trust anchors and packaging:
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>
+            <Strong>Bitwarden Send</Strong> is excellent and also
+            zero-knowledge, but it&rsquo;s gated behind a Bitwarden
+            account (for the sender) and closed server code for the
+            receive path. Flowvault&rsquo;s equivalent is account-less
+            and open source end-to-end &mdash; frontend, Cloud
+            Functions, and Firestore rules all live in{" "}
+            <Link href="/faq" className="text-accent hover:underline">
+              the same repo
+            </Link>
+            .
+          </li>
+          <li>
+            <Strong>Privnote</Strong> is account-less too, but
+            closed-source; you take its claims on trust. It also lacks
+            an optional password gate, so a leaked link is game over.
+          </li>
+          <li>
+            <Strong>1Password Share</Strong> requires a 1Password
+            account for the sender and shares through 1Password&rsquo;s
+            infrastructure. Fine if you already live there.
+          </li>
+          <li>
+            <Strong>Flowvault Encrypted Send</Strong>: no account,
+            open source, optional password gate using the same
+            Argon2id + AES-GCM construction as the rest of the
+            product, hard-delete on last view, Firestore TTL as a
+            belt-and-suspenders sweep, and it lives next to your vault
+            and time-locks under one URL.
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    q: "Could Flowvault read my Encrypted Send note if you wanted to?",
+    a: (
+      <>
+        No. The ciphertext goes to Firestore, but the 256-bit AES key
+        lives in the URL fragment, which browsers never transmit.
+        Anyone with access to our database &mdash; us, a cloud
+        provider, a subpoena &mdash; sees only opaque bytes. If the
+        sender also enabled a password, even leaking the URL
+        isn&rsquo;t enough to read the note. If you&rsquo;re going to
+        trust-but-verify any of this, the crypto is in{" "}
+        <Code>src/lib/send/crypto.ts</Code> and{" "}
+        <Code>src/lib/crypto/passwordFrame.ts</Code>, the Cloud
+        Function is in <Code>functions/src/index.ts</Code>, and the
+        rules are in <Code>firestore.rules</Code>.
+      </>
+    ),
+  },
+  {
+    q: "What if someone intercepts the link before the recipient opens it?",
+    a: (
+      <>
+        Whoever opens it first wins, and subsequent opens see
+        &ldquo;already opened&rdquo; &mdash; which is actually a
+        tripwire: if your recipient clicks the link and sees that
+        message, you know the channel was compromised and can rotate
+        whatever secret you shared. If that tripwire isn&rsquo;t
+        enough for your threat model, tick{" "}
+        <em>&ldquo;Also require a password to open&rdquo;</em>. The
+        recipient then needs both the link and the password, shared
+        through different channels (e.g. link by email, password by
+        phone / Signal).
+      </>
+    ),
+  },
+  {
+    q: "Does Encrypted Send support files or just text?",
+    a: (
+      <>
+        Text only for now. Plaintext is capped at 128 KiB &mdash;
+        plenty for credentials, recovery phrases, configs, a long
+        paragraph of context. File attachments are on the roadmap and
+        would use Firebase Storage with a similar URL-fragment-keyed
+        wrap; they&rsquo;ll ship when we can do it without bloating
+        the threat model.
+      </>
+    ),
+  },
+  {
+    q: "What happens when an Encrypted Send note expires?",
+    a: (
+      <>
+        An hourly Cloud Function (<Code>sendsSweep</Code>) batch-deletes
+        any send past its <Code>expiresAt</Code> timestamp, and a
+        Firestore TTL policy on the same field provides a secondary
+        sweep. Whichever runs first wins; both are idempotent. Once
+        the document is gone, even if someone saved the URL they see
+        &ldquo;not found&rdquo; &mdash; Flowvault has no backup of
+        deleted sends.
       </>
     ),
   },

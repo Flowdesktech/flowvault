@@ -38,6 +38,24 @@ export function fromBase64(s: string): Uint8Array {
   return out;
 }
 
+/**
+ * Encode bytes as URL-safe base64 (RFC 4648 &sect;5) with padding stripped.
+ * Safe to place inside a URL fragment or path segment without escaping.
+ */
+export function toBase64Url(b: Uint8Array): string {
+  return toBase64(b).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/**
+ * Decode URL-safe base64. Accepts both padded and unpadded input.
+ * Throws if the input contains non-base64url characters.
+ */
+export function fromBase64Url(s: string): Uint8Array {
+  const normalized = s.replace(/-/g, "+").replace(/_/g, "/");
+  const pad = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
+  return fromBase64(normalized + pad);
+}
+
 export function concat(...parts: Uint8Array[]): Uint8Array {
   const total = parts.reduce((n, p) => n + p.length, 0);
   const out = new Uint8Array(total);

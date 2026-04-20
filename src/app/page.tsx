@@ -18,6 +18,7 @@ import {
   X,
   Bitcoin,
   Heart,
+  Send,
 } from "lucide-react";
 
 /**
@@ -64,6 +65,7 @@ const HOMEPAGE_JSON_LD = {
         "Plausible-deniability hidden-volume format",
         "Client-wrapped dead-man's switch",
         "Drand-backed time-locked notes",
+        "Encrypted Send: self-destructing, view-capped one-time notes",
         "No account required",
         "Open source (frontend + Cloud Functions + Firestore rules)",
       ],
@@ -109,7 +111,7 @@ export default function HomePage() {
           </p>
         </section>
 
-        <section className="mt-20 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="mt-20 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <Feature
             icon={<ShieldCheck size={18} />}
             title="Plausible deniability"
@@ -138,6 +140,26 @@ export default function HomePage() {
             }
             href="/timelock/new"
             ctaLabel="Lock a message"
+          />
+          <Feature
+            icon={<Send size={18} />}
+            title="Encrypted Send"
+            body={
+              <>
+                One-shot notes that self-destruct after opening. Share a
+                password, API key, or recovery phrase through a link that
+                vanishes after the recipient reads it &mdash; or after
+                an expiry you pick. The AES-256 key lives in the URL
+                fragment, so our servers literally cannot decrypt it.
+              </>
+            }
+            href="/send/new"
+            ctaLabel="Send a secret"
+          />
+          <Feature
+            icon={<Code2 size={18} />}
+            title="Fully open source"
+            body="Frontend, Cloud Functions, Firestore rules, and deployment config are all in the public repo. Audit every line that touches your data — or self-host the entire stack."
           />
         </section>
 
@@ -262,6 +284,12 @@ export default function HomePage() {
                 <Row
                   label="Time-locked notes"
                   ours="Yes (drand + optional password)"
+                  theirs={<X className="inline" size={14} />}
+                  oursGood
+                />
+                <Row
+                  label="Self-destructing one-time notes"
+                  ours="Yes (AES-256, URL-fragment key, server-enforced view count + TTL, optional password)"
                   theirs={<X className="inline" size={14} />}
                   oursGood
                 />

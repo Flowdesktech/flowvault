@@ -3,9 +3,9 @@ import { Navbar } from "@/components/Navbar";
 import { APP_URL } from "@/lib/config";
 
 const SEC_TITLE =
-  "Security & threat model — Argon2id, AES-GCM, hidden volumes, drand tlock";
+  "Security & threat model — Argon2id, AES-GCM, hidden volumes, drand tlock, Encrypted Send";
 const SEC_DESCRIPTION =
-  "Flowvault's threat model and crypto primitives: Argon2id key derivation, AES-256-GCM authenticated encryption, hidden-volume plausible deniability, a client-wrapped dead-man's switch, and drand-backed time-locked notes. Written honestly, with the limits spelled out.";
+  "Flowvault's threat model and crypto primitives: Argon2id key derivation, AES-256-GCM authenticated encryption, hidden-volume plausible deniability, a client-wrapped dead-man's switch, drand-backed time-locked notes, and Encrypted Send self-destructing one-time links. Written honestly, with the limits spelled out.";
 
 export const metadata: Metadata = {
   title: SEC_TITLE,
@@ -285,6 +285,78 @@ export default function SecurityPage() {
           missing hint cannot bypass the password. We never store the
           password, its hash, or a hint; if you lose it the message is
           unrecoverable.
+        </p>
+
+        <H2>Encrypted Send</H2>
+        <p className="mt-2 text-muted">
+          Encrypted Send is a separate primitive for one-shot, ephemeral
+          sharing &mdash; the self-destructing link flavour. It does not
+          share a storage collection or a rules block with the vault
+          pipeline; the threat model is different and the code paths are
+          deliberately isolated.
+        </p>
+        <ol className="mt-3 list-decimal space-y-1 pl-5 text-muted">
+          <li>
+            <strong className="text-foreground">Outer encryption:</strong>{" "}
+            the browser generates a fresh 256-bit AES-GCM key, encrypts
+            the plaintext, and places the key in the URL fragment
+            (after <Code>#k=</Code>, base64url-encoded). Browsers
+            don&apos;t transmit URL fragments, so the key never reaches
+            our servers, our logs, or our database backups. The only
+            bytes Firestore holds are the opaque ciphertext, an
+            <Code>expiresAt</Code> timestamp, a <Code>maxViews</Code>{" "}
+            integer, and a <Code>viewCount</Code> starting at zero.
+          </li>
+          <li>
+            <strong className="text-foreground">
+              Optional inner password layer:
+            </strong>{" "}
+            identical to the time-lock password frame (
+            <Code>&quot;FVPW&quot; || version || saltLen || salt || iv || ct || tag</Code>
+            ). Argon2id with the same 64 MiB / 3 iteration parameters
+            derives a key from the password; the plaintext is wrapped
+            with AES-256-GCM under that key <em>before</em> the outer
+            AES wrap. A leaked URL alone is not enough to read the
+            note.
+          </li>
+          <li>
+            <strong className="text-foreground">
+              Server-enforced view cap:
+            </strong>{" "}
+            clients cannot read <Code>sends/&#123;id&#125;</Code>{" "}
+            documents directly &mdash; the Firestore rules deny it.
+            Reads go through the <Code>readSend</Code> callable Cloud
+            Function, which runs a transaction:{" "}
+            <em>(1)</em> fetch the doc, <em>(2)</em> refuse if expired
+            or exhausted, <em>(3)</em> increment <Code>viewCount</Code>{" "}
+            or <Code>delete</Code> the document when this read consumes
+            the final view, <em>(4)</em> return the ciphertext. Atomic,
+            so concurrent openers can&apos;t both see the last view.
+          </li>
+          <li>
+            <strong className="text-foreground">TTL sweep:</strong> a
+            scheduled <Code>sendsSweep</Code> function runs hourly and
+            hard-deletes anything past <Code>expiresAt</Code>. A
+            Firestore TTL policy on the same field is the secondary
+            safety net. The shorter of (all views consumed, expiry
+            reached) wins.
+          </li>
+        </ol>
+        <p className="mt-2 text-muted">
+          Limits and leaks we acknowledge: the server sees
+          <Code>expiresAt</Code>, <Code>maxViews</Code>,
+          <Code>viewCount</Code>, ciphertext size, and creation /
+          deletion timestamps &mdash; that&apos;s enough to know
+          &ldquo;a send existed at this ID, was opened N times, and
+          expired at T.&rdquo; It cannot see the plaintext, the key,
+          the password, or whether an inner password was set beyond a
+          hint flag. If the recipient opens the link before you
+          intended, the view is consumed &mdash; use the password gate
+          when that matters, or lower the expiry. We hard-delete on
+          the last view but rely on Firestore&apos;s deletion
+          semantics (overwritten in the index immediately;
+          backup-retention per Firebase&apos;s own schedule); we do
+          not operate additional snapshots.
         </p>
 
         <H2>Responsible disclosure</H2>

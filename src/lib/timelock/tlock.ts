@@ -31,30 +31,12 @@ import {
   type HttpChainClient,
 } from "tlock-js";
 import { Buffer } from "buffer";
-import { aeadDecrypt, aeadEncrypt } from "@/lib/crypto/aead";
-import { deriveMasterKey } from "@/lib/crypto/kdf";
-import { randomBytes } from "@/lib/crypto/random";
+import {
+  looksPasswordFramed,
+  unwrapWithPassword,
+  wrapWithPassword,
+} from "@/lib/crypto/passwordFrame";
 import { utf8Decode, utf8Encode } from "@/lib/utils/bytes";
-
-/**
- * When a caller opts in to a password, the payload that goes into tlock is
- * this framed structure rather than raw UTF-8:
- *
- *   [magic "FVPW" (4)]
- *   [version (1)]        // 1
- *   [saltLen (1)]        // always 16 for now
- *   [salt (saltLen)]     // Argon2 salt
- *   [AEAD output]        // iv (12) || ct || tag (16)
- *
- * The magic lets the viewer tell "this capsule was password-wrapped"
- * from "this is plain UTF-8" *after* tlock-decrypt releases the bytes.
- * We also surface a hint flag on the Firestore document so the UI can
- * prompt during the countdown rather than after.
- */
-const PW_MAGIC = new Uint8Array([0x46, 0x56, 0x50, 0x57]); // "FVPW"
-const PW_VERSION = 1;
-const PW_SALT_BYTES = 16;
-const PW_HEADER_BYTES = 4 /* magic */ + 1 /* version */ + 1; /* saltLen */
 
 /**
  * Minimum unlock horizon enforced in the UI. If someone picks a moment
@@ -106,48 +88,6 @@ export interface EncryptOptions {
    * AND the password to recover the plaintext.
    */
   password?: string;
-}
-
-async function wrapWithPassword(
-  plaintext: string,
-  password: string,
-): Promise<Uint8Array> {
-  const salt = randomBytes(PW_SALT_BYTES);
-  const key = await deriveMasterKey(password, salt);
-  const aead = await aeadEncrypt(key, utf8Encode(plaintext));
-  const out = new Uint8Array(PW_HEADER_BYTES + salt.length + aead.length);
-  out.set(PW_MAGIC, 0);
-  out[4] = PW_VERSION;
-  out[5] = salt.length;
-  out.set(salt, PW_HEADER_BYTES);
-  out.set(aead, PW_HEADER_BYTES + salt.length);
-  return out;
-}
-
-function looksPasswordFramed(bytes: Uint8Array): boolean {
-  if (bytes.length < PW_HEADER_BYTES) return false;
-  for (let i = 0; i < PW_MAGIC.length; i++) {
-    if (bytes[i] !== PW_MAGIC[i]) return false;
-  }
-  return true;
-}
-
-async function unwrapWithPassword(
-  bytes: Uint8Array,
-  password: string,
-): Promise<Uint8Array | null> {
-  if (!looksPasswordFramed(bytes)) return null;
-  const version = bytes[4];
-  if (version !== PW_VERSION) return null;
-  const saltLen = bytes[5];
-  if (saltLen < 8 || saltLen > 64) return null;
-  const saltStart = PW_HEADER_BYTES;
-  const saltEnd = saltStart + saltLen;
-  if (saltEnd >= bytes.length) return null;
-  const salt = bytes.slice(saltStart, saltEnd);
-  const aead = bytes.slice(saltEnd);
-  const key = await deriveMasterKey(password, salt);
-  return aeadDecrypt(key, aead);
 }
 
 /**

@@ -5,11 +5,12 @@ import { APP_URL } from "@/lib/config";
  * Public sitemap served at /sitemap.xml.
  *
  * Only include pages that are worth indexing. Per-user resources
- * &mdash; vaults (`/s/{slug}`) and share links for time-locked notes
- * (`/t/{id}`) &mdash; are intentionally excluded because their URLs
- * are access credentials we don&apos;t want leaking into search
- * results. Those routes also carry `robots: noindex` at the page
- * level; robots.ts adds belt-and-braces `Disallow:` rules.
+ * &mdash; vaults (`/s/{slug}`), time-lock share links (`/t/{id}`),
+ * and Encrypted Send links (`/send/{id}`) &mdash; are intentionally
+ * excluded because their URLs are access credentials we don&apos;t
+ * want leaking into search results. Those routes also carry
+ * `robots: noindex` at the page level; robots.ts adds belt-and-braces
+ * `Disallow:` rules.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
@@ -35,6 +36,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${base}/timelock/new`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${base}/send/new`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.8,

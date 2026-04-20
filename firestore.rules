@@ -22,6 +22,18 @@ service cloud.firestore {
       allow create: if isValidTimelock(request.resource.data);
       allow update, delete: if false;
     }
+
+    // Encrypted Send: short-lived, view-capped one-way notes. The AES-256
+    // key lives in the URL fragment (never sent to the server), so even
+    // the ciphertext is unreadable to us. Reads go through the `readSend`
+    // Cloud Function, which atomically decrements views and deletes the
+    // document on the final read. The Admin SDK bypasses these rules,
+    // which is how the function reaches the bytes.
+    match /sends/{sendId} {
+      allow read: if false;            // Only readSend (Admin SDK) reads these.
+      allow create: if isValidSend(request.resource.data);
+      allow update, delete: if false;  // No client mutations after creation.
+    }
   }
 
   function isValidCreate(d) {
@@ -97,6 +109,29 @@ service cloud.firestore {
         && d.round is int
         && d.round > 0
         && d.chainHash is string
+        && (!d.keys().hasAny(['passwordProtected'])
+            || d.passwordProtected is bool);
+  }
+
+  // Send document invariants. The ciphertext cap is 256 KiB (same as
+  // timelocks) which after AEAD overhead leaves ~256 KiB plaintext,
+  // well above the 128 KiB UX cap. Expiry must land in the future but
+  // not past ~30 days (with a small clock-drift buffer). Clients
+  // cannot create a document that's already consumed.
+  function isValidSend(d) {
+    return d.keys().hasAll([
+            'ciphertext', 'expiresAt', 'maxViews', 'viewCount', 'createdAt'
+          ])
+        && d.ciphertext is bytes
+        && d.ciphertext.size() > 0
+        && d.ciphertext.size() <= 262144
+        && d.expiresAt is timestamp
+        && d.expiresAt > request.time
+        && d.expiresAt < request.time + duration.value(31, 'd')
+        && d.maxViews is int
+        && d.maxViews >= 1
+        && d.maxViews <= 100
+        && d.viewCount == 0
         && (!d.keys().hasAny(['passwordProtected'])
             || d.passwordProtected is bool);
   }

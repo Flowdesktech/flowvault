@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Vault, Heart, Briefcase, Clock } from "lucide-react";
+import { Vault, Heart, Briefcase, Clock, Send } from "lucide-react";
 import { CONTACT_EMAIL, DONATE_PATH, GITHUB_URL } from "@/lib/config";
 
 export function Navbar() {
@@ -18,6 +18,13 @@ export function Navbar() {
             Flowvault
           </Link>
           <nav className="flex items-center gap-1 text-sm text-muted sm:gap-4">
+            <Link
+              href="/send/new"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:text-foreground"
+              title="Send a self-destructing encrypted note"
+            >
+              <Send size={14} /> <span className="hidden sm:inline">Send</span>
+            </Link>
             <Link
               href="/timelock/new"
               className="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:text-foreground"

@@ -187,6 +187,39 @@ export async function createSite(input: CreateSiteInput): Promise<void> {
   });
 }
 
+export interface RestoreSiteInput {
+  siteId: string;
+  ciphertext: Uint8Array;
+  kdfSalt: Uint8Array;
+  /** KDF params as captured in the backup — preserved verbatim so old vaults keep opening. */
+  kdfParams: KdfParamsRecord;
+  /** Volume layout as captured in the backup. */
+  volume: VolumeParamsRecord;
+}
+
+/**
+ * Restore a backup to a fresh site document. Equivalent to `createSite`
+ * but preserves the KDF and volume metadata embedded in the backup,
+ * so that vaults created under different defaults can still be opened
+ * with their original password. Rejects if the site already exists
+ * (same hash → same slug).
+ *
+ * The Firestore `isValidCreate` rule accepts arbitrary Argon2id
+ * `kdfParams` and any `volume` whose product matches the ciphertext
+ * size, so no rule changes are needed for restore.
+ */
+export async function restoreSite(input: RestoreSiteInput): Promise<void> {
+  await setDoc(siteRef(input.siteId), {
+    ciphertext: Bytes.fromUint8Array(input.ciphertext),
+    kdfSalt: Bytes.fromUint8Array(input.kdfSalt),
+    kdfParams: { ...input.kdfParams },
+    volume: { ...input.volume },
+    version: 1,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
 /**
  * Optimistic-concurrency update: succeeds only if the server version still
  * matches `expectedVersion`. Prevents last-writer-wins clobbering when the

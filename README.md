@@ -50,6 +50,7 @@ nearly every dimension that matters for a zero-knowledge notepad.
 - **Optimistic concurrency** — edit the same vault in two browser tabs without losing work.
 - **Modern editor** — keyboard-first (Ctrl/Cmd+S), auto-save with visible status, dark mode, clean typography.
 - **Slot capacity meter** — you always know how much space you have in your notebook.
+- **Encrypted backup & restore** — download the full vault as a `.fvault` file (opaque ciphertext + KDF params + volume layout). The file is exactly as zero-knowledge as the live vault: it still needs your password to read, and every decoy slot stays indistinguishable from random bytes. Restore to any fresh slug on any Flowvault instance (including a self-hosted one) from `/restore`. Plaintext Markdown export (current slot only) is also available, behind a confirmation, for migrating out to Obsidian et al.
 
 ### Trust & transparency
 
@@ -129,6 +130,7 @@ Shipped:
 - drand-backed time-locked notes (`/timelock/new` compose → `/t/{id}` view) via [tlock-js](https://github.com/drand/tlock-js)
 - Encrypted Send: one-shot, self-destructing notes (`/send/new` → `/send/{id}#k=<key>`)
 - Multi-notebook tabs per slot — one password, many tabs, all inside the same encrypted blob
+- Encrypted backup/restore (`.fvault`) + plaintext Markdown export for migration
 
 In progress / planned:
 

@@ -20,8 +20,10 @@ import { utf8Decode, utf8Encode } from "@/lib/utils/bytes";
 import {
   createSite,
   fetchSite,
+  restoreSite,
   updateSiteCiphertext,
   type DeadmanRecord,
+  type KdfParamsRecord,
 } from "@/lib/firebase/sites";
 import {
   createBundle,
@@ -29,6 +31,12 @@ import {
   serializeBundle,
   type NotebookBundle,
 } from "@/lib/vault/notebooks";
+import {
+  BACKUP_KIND,
+  BACKUP_VERSION,
+  type BackupEnvelope,
+} from "@/lib/vault/portable";
+import { KDF_PARAMS } from "@/lib/crypto/kdf";
 
 export const SALT_BYTES = 16;
 
@@ -181,6 +189,97 @@ export async function saveVault(input: SaveInput): Promise<SaveResult> {
     return { kind: "conflict", currentVersion: res.currentVersion };
   }
   return { kind: "saved", blob: nextBlob, version: res.newVersion };
+}
+
+/**
+ * Package an already-open vault into a portable backup envelope. The
+ * caller provides the live ciphertext/kdfSalt/volume (from the store)
+ * plus the (typically current) KDF params. We intentionally take the
+ * KDF params as an argument rather than reading them from the live
+ * `fetchSite` again: callers already have the authoritative copy in
+ * memory if they want it, and re-fetching would expose the export to
+ * a race where a beneficiary release between the editor open and the
+ * export click would flip the document to read-only.
+ */
+export interface BuildBackupInput {
+  slug: string;
+  ciphertext: Uint8Array;
+  kdfSalt: Uint8Array;
+  volume: { slotCount: number; slotSize: number; frameVersion?: number };
+  kdfParams?: KdfParamsRecord;
+}
+
+export function buildBackupFromOpenVault(
+  input: BuildBackupInput,
+): BackupEnvelope {
+  return {
+    kind: BACKUP_KIND,
+    version: BACKUP_VERSION,
+    exportedAt: Date.now(),
+    slugHint: input.slug,
+    kdfSalt: input.kdfSalt,
+    kdfParams: input.kdfParams ?? { ...KDF_PARAMS },
+    volume: {
+      slotCount: input.volume.slotCount,
+      slotSize: input.volume.slotSize,
+      frameVersion: input.volume.frameVersion ?? 1,
+    },
+    ciphertext: input.ciphertext,
+  };
+}
+
+export type RestoreResult =
+  | { kind: "restored"; siteId: string }
+  | { kind: "slug-taken" }
+  | { kind: "rejected"; reason: string };
+
+/**
+ * Restore a decoded backup to a fresh slug. The caller is responsible
+ * for presenting the `slug-taken` case to the user (we intentionally
+ * refuse to overwrite rather than require re-authentication; a plain
+ * refusal is safer and simpler than any clobber flow).
+ *
+ * Failures from the underlying `restoreSite` call are surfaced as
+ * `rejected` with a human-readable message; the most common cause is
+ * a permission-denied from the Firestore rules (size mismatch, stale
+ * KDF params, etc.), which means the backup is malformed.
+ */
+export async function restoreVaultFromBackup(input: {
+  slug: string;
+  backup: BackupEnvelope;
+}): Promise<RestoreResult> {
+  const siteId = await deriveSiteId(input.slug);
+  const existing = await fetchSite(siteId);
+  if (existing) return { kind: "slug-taken" };
+
+  // Defensive: re-check the size invariant even though decodeBackup
+  // already did. If we add in-memory munging later, this is a second
+  // line of defense before the server refuses the write.
+  const expected = input.backup.volume.slotCount * input.backup.volume.slotSize;
+  if (input.backup.ciphertext.length !== expected) {
+    return {
+      kind: "rejected",
+      reason: "Backup ciphertext size does not match its declared volume.",
+    };
+  }
+
+  try {
+    await restoreSite({
+      siteId,
+      ciphertext: input.backup.ciphertext,
+      kdfSalt: input.backup.kdfSalt,
+      kdfParams: input.backup.kdfParams,
+      volume: input.backup.volume,
+    });
+    return { kind: "restored", siteId };
+  } catch (e) {
+    const err = e as { code?: string; message?: string };
+    const reason =
+      err?.code === "permission-denied"
+        ? "The server rejected this backup. It may be from an incompatible version."
+        : (err?.message ?? "Restore failed.");
+    return { kind: "rejected", reason };
+  }
 }
 
 export interface AddPasswordInput {

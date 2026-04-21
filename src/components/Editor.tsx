@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { AddPasswordModal } from "./AddPasswordModal";
 import { DeadmanModal } from "./DeadmanModal";
+import { ExportMenu } from "./ExportMenu";
 import { deadmanExpiresAt } from "@/lib/vault/deadman";
 import { useNow } from "@/lib/utils/useNow";
 
@@ -358,10 +359,15 @@ export function Editor() {
               >
                 <KeyRound size={14} /> Add password
               </Button>
-              <Button variant="secondary" size="sm" onClick={flushSaveNow}>
-                <Save size={14} /> Save
-              </Button>
             </>
+          ) : null}
+          {/* Export stays available in read-only (beneficiary / released)
+              views too so the holder can still archive or migrate. */}
+          <ExportMenu />
+          {!readOnly ? (
+            <Button variant="secondary" size="sm" onClick={flushSaveNow}>
+              <Save size={14} /> Save
+            </Button>
           ) : null}
           <Button variant="ghost" size="sm" onClick={close}>
             <LogOut size={14} /> Lock

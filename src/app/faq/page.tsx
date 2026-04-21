@@ -1402,6 +1402,68 @@ export default function FAQPage() {
           items={BACKUP}
         />
         <Section title="Project" items={COMPANY} />
+
+        <section className="mt-12 rounded-2xl border border-border bg-background-elev p-6 text-sm text-muted">
+          <h2 className="text-foreground font-medium">
+            Want a longer answer?
+          </h2>
+          <p className="mt-2">
+            The{" "}
+            <Link href="/blog" className="text-accent hover:underline">
+              Flowvault blog
+            </Link>{" "}
+            has feature-by-feature deep dives: the{" "}
+            <Link
+              href="/blog/plausible-deniability-hidden-volumes-explained"
+              className="text-accent hover:underline"
+            >
+              hidden-volume format
+            </Link>
+            , the{" "}
+            <Link
+              href="/blog/trusted-handover-encrypted-notes-beneficiary"
+              className="text-accent hover:underline"
+            >
+              trusted handover
+            </Link>
+            ,{" "}
+            <Link
+              href="/blog/time-locked-notes-drand-tlock"
+              className="text-accent hover:underline"
+            >
+              drand-backed time-locked notes
+            </Link>
+            , a head-to-head of{" "}
+            <Link
+              href="/blog/encrypted-send-vs-bitwarden-send-privnote"
+              className="text-accent hover:underline"
+            >
+              Encrypted Send vs Bitwarden Send vs Privnote
+            </Link>
+            , the{" "}
+            <Link
+              href="/blog/encrypted-backup-fvault-format"
+              className="text-accent hover:underline"
+            >
+              <Code>.fvault</Code> backup format
+            </Link>
+            , a{" "}
+            <Link
+              href="/blog/how-to-use-flowvault-guide"
+              className="text-accent hover:underline"
+            >
+              beginner&apos;s guide
+            </Link>
+            , and{" "}
+            <Link
+              href="/blog/why-i-built-flowvault"
+              className="text-accent hover:underline"
+            >
+              why Flowvault exists in the first place
+            </Link>
+            .
+          </p>
+        </section>
       </main>
       <footer className="border-t border-border/60 py-6 text-center text-xs text-muted">
         Flowvault · part of the Flowdesk family

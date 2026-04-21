@@ -596,12 +596,17 @@ export default function HomePage() {
             Read the{" "}
             <Link href="/security" className="text-accent hover:underline">
               security design
-            </Link>{" "}
-            or the{" "}
+            </Link>
+            , the{" "}
             <Link href="/faq" className="text-accent hover:underline">
               FAQ
+            </Link>
+            , or the{" "}
+            <Link href="/blog" className="text-accent hover:underline">
+              blog
             </Link>{" "}
-            for more.
+            for per-feature deep dives and honest competitor
+            comparisons.
           </p>
         </section>
       </main>
@@ -613,6 +618,9 @@ export default function HomePage() {
           </Link>
           <Link href="/faq" className="hover:text-foreground">
             FAQ
+          </Link>
+          <Link href="/blog" className="hover:text-foreground">
+            Blog
           </Link>
           <a
             href={GITHUB_URL}

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { APP_URL } from "@/lib/config";
+import { POSTS } from "@/lib/blog/posts";
 
 /**
  * Public sitemap served at /sitemap.xml.
@@ -58,5 +59,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.5,
     },
+    {
+      url: `${base}/blog`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    ...POSTS.map((p) => ({
+      url: `${base}/blog/${p.slug}`,
+      lastModified: new Date(p.updatedAt ?? p.publishedAt),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
   ];
 }

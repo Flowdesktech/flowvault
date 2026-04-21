@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Vault, Heart, Briefcase, Clock, Send } from "lucide-react";
+import { Vault, Heart, Briefcase, Clock, Send, BookOpen } from "lucide-react";
 import { CONTACT_EMAIL, DONATE_PATH, GITHUB_URL } from "@/lib/config";
 
 export function Navbar() {
@@ -31,6 +31,13 @@ export function Navbar() {
               title="Encrypt a message to a future date"
             >
               <Clock size={14} /> <span className="hidden sm:inline">Time-lock</span>
+            </Link>
+            <Link
+              href="/blog"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:text-foreground"
+              title="Guides, deep dives, and honest comparisons"
+            >
+              <BookOpen size={14} /> <span className="hidden sm:inline">Blog</span>
             </Link>
             <Link
               href="/security"

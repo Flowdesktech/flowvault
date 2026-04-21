@@ -5,9 +5,9 @@ import Link from "next/link";
 import { DONATE_PATH, APP_URL } from "@/lib/config";
 
 const FAQ_TITLE =
-  "FAQ — Flowvault: encrypted online notepad, dead-man's switch, time-locked notes, Encrypted Send, encrypted backup & restore; ProtectedText / Standard Notes / CryptPad / Privnote / Bitwarden Send alternative";
+  "FAQ — Flowvault: encrypted online notepad, trusted handover to a beneficiary, time-locked notes, Encrypted Send, encrypted backup & restore; ProtectedText / Standard Notes / CryptPad / Privnote / Bitwarden Send alternative";
 const FAQ_DESCRIPTION =
-  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how the dead-man's switch releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, how Encrypted Send creates self-destructing one-time links with view caps and optional passwords, how zero-knowledge .fvault backup and restore let you migrate or self-host without decrypting anything server-side, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, OneTimeSecret, PrivateBin, Yopass, Notesnook, Joplin, Obsidian, Bitwarden Send, 1Password Share, and Skiff Notes.";
+  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how the trusted handover releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, how Encrypted Send creates self-destructing one-time links with view caps and optional passwords, how zero-knowledge .fvault backup and restore let you migrate or self-host without decrypting anything server-side, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, OneTimeSecret, PrivateBin, Yopass, Notesnook, Joplin, Obsidian, Bitwarden Send, 1Password Share, and Skiff Notes.";
 
 export const metadata: Metadata = {
   title: FAQ_TITLE,
@@ -24,7 +24,13 @@ export const metadata: Metadata = {
     "Yopass alternative",
     "Bitwarden Send alternative",
     "1Password Share alternative",
+    "trusted handover notepad",
+    "vault inheritance",
+    "beneficiary access encrypted notes",
     "dead man's switch notepad",
+    "dead man's switch notes",
+    "inactivity-triggered release encrypted notes",
+    "emergency access encrypted notes",
     "time-locked notes",
     "drand tlock",
     "plausible deniability notes",
@@ -520,7 +526,7 @@ const USAGE: QA[] = [
 
 const FEATURES: QA[] = [
   {
-    q: "What is the dead-man's switch?",
+    q: "What is the trusted handover?",
     a: (
       <>
         An opt-in way to say: &ldquo;if I stop checking in for X days, let
@@ -537,14 +543,14 @@ const FEATURES: QA[] = [
     ),
   },
   {
-    q: "Is the dead-man's switch zero-knowledge too?",
+    q: "Is the trusted handover zero-knowledge too?",
     a: (
       <>
         The cryptography is, yes &mdash; the server never sees the
         beneficiary password, the master key, or the plaintext. We do
         <em> acknowledge</em> two visible side-effects we can&apos;t avoid
         without losing the ability to schedule the release: the{" "}
-        <Strong>existence</Strong> of a switch on the vault, and the{" "}
+        <Strong>existence</Strong> of a handover on the vault, and the{" "}
         interval / grace / last-heartbeat metadata. The wrapped key and
         beneficiary salt themselves are opaque ciphertext.
       </>
@@ -562,12 +568,12 @@ const FEATURES: QA[] = [
         with any password-only zero-knowledge notepad, and the defense we
         plan to add is a Cloud Function that requires a proof of master-key
         knowledge for writes). But they can&apos;t secretly keep the
-        deadman alive.
+        handover from firing.
       </>
     ),
   },
   {
-    q: "Can I cancel a dead-man's switch?",
+    q: "Can I cancel a trusted handover?",
     a: (
       <>
         While it&apos;s still active (not released yet): yes, any time,
@@ -582,36 +588,39 @@ const FEATURES: QA[] = [
     ),
   },
   {
-    q: "What happens to my other hidden notebooks when the switch fires?",
+    q: "What happens to my other hidden notebooks when the handover fires?",
     a: (
       <>
         Only the notebook that belongs to the master key you wrapped is
         exposed to the beneficiary &mdash; by design. The other slots in
         the vault (decoys, or notebooks under other passwords) stay as
         random-looking bytes that the beneficiary has no key for. If you
-        care about this, configure the switch from a <em>decoy</em>{" "}
+        care about this, configure the handover from a <em>decoy</em>{" "}
         notebook&apos;s session rather than from your primary one.
       </>
     ),
   },
   {
-    q: "Do Standard Notes / ProtectedText / Privnote have a dead-man's switch?",
+    q: "Do Standard Notes / ProtectedText / Privnote have a trusted handover?",
     a: (
       <>
         Not out of the box. Standard Notes has paid cloud sharing but not a
         time-triggered release mechanism. ProtectedText, Privnote,
         CryptPad, and most &ldquo;zero-knowledge notepad&rdquo; services
         have no concept of inheritance &mdash; forget or lose the password
-        and the data is gone. Flowvault ships the switch as a first-class,
-        client-side feature.
+        and the data is gone. Bitwarden&apos;s <em>Emergency Access</em>{" "}
+        feature is the closest mainstream analog, but it requires accounts
+        on both sides and is gated behind a paid plan. Flowvault ships the
+        trusted handover as a first-class, client-side, account-less
+        feature.
       </>
     ),
   },
   {
-    q: "Time-locked notes — are those the same as the dead-man's switch?",
+    q: "Time-locked notes — are those the same as the trusted handover?",
     a: (
       <>
-        No, they&apos;re complementary. The dead-man&apos;s switch uses a
+        No, they&apos;re complementary. The trusted handover uses a
         password-wrapped key that a <em>server</em> unveils after a
         timeout. Time-locked notes use the <Strong>drand</Strong> public
         randomness beacon&apos;s threshold BLS signatures as the unlock
@@ -1019,7 +1028,7 @@ const BACKUP: QA[] = [
     a: (
       <>
         Yes. The whole stack &mdash; Next.js frontend, Cloud Functions
-        (the dead-man&apos;s-switch sweep and the Encrypted Send read
+        (the trusted-handover release sweep and the Encrypted Send read
         path), and Firestore security rules &mdash; is in one public
         repository. Bring your own Firebase project, deploy the rules
         and Functions, point the frontend at it, and drop a{" "}
@@ -1125,8 +1134,8 @@ const BACKUP: QA[] = [
         the vault for long-form notes. The file is ~680 KiB regardless
         of how much you&apos;ve written (fixed-size ciphertext), so
         storing many snapshots is cheap. Some users pair this with a
-        dead-man&apos;s switch: the backup protects against data loss,
-        the switch against you being unable to unlock it.
+        trusted handover: the backup protects against data loss,
+        the handover against you being unable to unlock it.
       </>
     ),
   },
@@ -1149,8 +1158,8 @@ const COMPANY: QA[] = [
             <Strong>Frontend</Strong> (Next.js, all UI + client-side crypto)
           </li>
           <li>
-            <Strong>Cloud Functions</Strong> (dead-man&apos;s-switch
-            sweep). You can read exactly what server-side code runs on
+            <Strong>Cloud Functions</Strong> (the trusted-handover
+            release sweep). You can read exactly what server-side code runs on
             your behalf &mdash; there is no hidden server process.
           </li>
           <li>
@@ -1369,8 +1378,8 @@ export default function FAQPage() {
         </h1>
         <p className="mt-3 text-muted">
           Questions we get (or expect to get) about our zero-knowledge
-          encrypted notepad, the dead-man&apos;s switch, drand-backed
-          time-locked notes, Encrypted Send,{" "}
+          encrypted notepad, the trusted handover to a beneficiary,
+          drand-backed time-locked notes, Encrypted Send,{" "}
           <Code>.fvault</Code> encrypted backups and restore, and how
           Flowvault compares to ProtectedText, Standard Notes,
           CryptPad, and other alternatives. If yours isn&apos;t here,
@@ -1384,7 +1393,7 @@ export default function FAQPage() {
         />
         <Section title="Security" items={SECURITY} />
         <Section
-          title="Dead-man's switch & time-locked notes"
+          title="Trusted handover & time-locked notes"
           items={FEATURES}
         />
         <Section title="Using Flowvault" items={USAGE} />

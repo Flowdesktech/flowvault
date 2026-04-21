@@ -14,7 +14,7 @@ cannot tell how many notebooks actually exist.
 - **Hire / business**: [contact@flowdesk.tech](mailto:contact@flowdesk.tech)
 
 Built with Next.js, Firebase Firestore for opaque ciphertext storage, and
-Firebase Functions for dead-man's-switch orchestration. All cryptography runs
+Firebase Functions for trusted-handover orchestration. All cryptography runs
 in the browser.
 
 ---
@@ -46,7 +46,7 @@ nearly every dimension that matters for a zero-knowledge notepad.
 - **Multi-notebook tabs** — each password now unlocks a *workspace*, not just one page. Add tabs, rename them, reorder them, delete them. Everything lives inside the same encrypted slot, so the tab list, titles, and contents are all zero-knowledge — the server sees one opaque blob, same as always. Decoy passwords get their own independent tab set in their own slot; adding tabs in your real notebook doesn't touch the decoy and vice versa.
 - **Time-locked notes** — encrypt a message to a future date using the [drand](https://drand.love) public randomness beacon and the [tlock](https://github.com/drand/tlock-js) scheme (identity-based encryption over BLS12-381). The ciphertext is stored opaquely; the decryption key literally does not exist until drand's network publishes the target round signature. Nobody — not us, not the sender, not a subpoena — can unlock it early. Share links look like `flowvault.flowdesk.tech/t/<id>`. **Optional password gate:** tick *"Also require a password to read"* and the note is double-wrapped — an inner AES-256-GCM layer keyed by Argon2id(password), and an outer tlock layer keyed to the unlock round. Leaked link alone can't read it; the reader needs both the time to pass and the password (shared out-of-band).
 - **Encrypted Send** — one-shot, self-destructing notes for sharing a password, an API key, a recovery phrase, or any snippet you'd rather not sit in chat history. AES-256-GCM encrypted in the browser; the 256-bit key travels in the URL fragment (`#k=...`), which browsers never send to servers. Pick an expiry (up to 30 days) and a view count (default 1); the server hard-deletes the ciphertext the moment the last view is consumed, and a scheduled sweep removes anything past its TTL. Reads go through a Cloud Function so the view counter is atomic — clients can't read the document directly (rules deny it). **Optional password gate** on top, using the same FVPW frame as time-locks, so even a leaked link needs an out-of-band password. Share links look like `flowvault.flowdesk.tech/send/<id>#k=<key>`.
-- **Dead-man's switch** — arm a vault so it auto-releases to a pre-chosen beneficiary password if you stop saving for the interval + grace you configure. Weekly / monthly / quarterly / yearly presets. The beneficiary key wraps your master key client-side; the server just schedules the release. Hourly Cloud Function sweeps expired configs; the Firestore rules forbid clients from faking a release or extending one they can't actually open.
+- **Trusted handover** — nominate a beneficiary and a check-in cadence. If you stop saving for the interval + grace you configure, the vault auto-hands over to a pre-chosen beneficiary password. Weekly / monthly / quarterly / yearly presets. The beneficiary key wraps your master key client-side; the server just schedules the release. Hourly Cloud Function sweeps expired configs; the Firestore rules forbid clients from faking a release or extending one they can't actually open.
 - **Optimistic concurrency** — edit the same vault in two browser tabs without losing work.
 - **Modern editor** — keyboard-first (Ctrl/Cmd+S), auto-save with visible status, dark mode, clean typography.
 - **Slot capacity meter** — you always know how much space you have in your notebook.
@@ -54,7 +54,7 @@ nearly every dimension that matters for a zero-knowledge notepad.
 
 ### Trust & transparency
 
-- **Open source, end to end.** Not just the frontend — the **Cloud Functions** (the dead-man's-switch sweep) and the **Firestore security rules** (the actual boundary that stops us from reading or mutating your data) are in the same repository, deployed unmodified. ProtectedText publishes its client JS for inspection but explicitly does not open its server code (per their own FAQ). Flowvault is reviewable, licensed, forkable, and self-hostable end-to-end.
+- **Open source, end to end.** Not just the frontend — the **Cloud Functions** (the trusted-handover sweep) and the **Firestore security rules** (the actual boundary that stops us from reading or mutating your data) are in the same repository, deployed unmodified. ProtectedText publishes its client JS for inspection but explicitly does not open its server code (per their own FAQ). Flowvault is reviewable, licensed, forkable, and self-hostable end-to-end.
 - **No ads. No tracking. No analytics.** Your browser talks to Firestore and nothing else.
 - **No account, no email, no phone number.** A URL slug and a password are all you ever provide.
 - **Self-hostable, whole-stack.** Bring your own Firebase project; the frontend, Functions, and rules all deploy from a single `npm` workspace.
@@ -126,7 +126,7 @@ Shipped:
 - Argon2id + AES-GCM
 - Optimistic concurrency on writes
 - Decoy-password management UI ("Add password" in the editor)
-- Dead-man's switch: configure / heartbeat-on-save / scheduled release / beneficiary unlock flow
+- Trusted handover: configure / heartbeat-on-save / scheduled release / beneficiary unlock flow
 - drand-backed time-locked notes (`/timelock/new` compose → `/t/{id}` view) via [tlock-js](https://github.com/drand/tlock-js)
 - Encrypted Send: one-shot, self-destructing notes (`/send/new` → `/send/{id}#k=<key>`)
 - Multi-notebook tabs per slot — one password, many tabs, all inside the same encrypted blob

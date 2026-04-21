@@ -5,7 +5,7 @@ import { APP_URL } from "@/lib/config";
 const SEC_TITLE =
   "Security & threat model — Argon2id, AES-GCM, hidden volumes, drand tlock, Encrypted Send";
 const SEC_DESCRIPTION =
-  "Flowvault's threat model and crypto primitives: Argon2id key derivation, AES-256-GCM authenticated encryption, hidden-volume plausible deniability, a client-wrapped dead-man's switch, drand-backed time-locked notes, and Encrypted Send self-destructing one-time links. Written honestly, with the limits spelled out.";
+  "Flowvault's threat model and crypto primitives: Argon2id key derivation, AES-256-GCM authenticated encryption, hidden-volume plausible deniability, a client-wrapped trusted handover to a beneficiary, drand-backed time-locked notes, and Encrypted Send self-destructing one-time links. Written honestly, with the limits spelled out.";
 
 export const metadata: Metadata = {
   title: SEC_TITLE,
@@ -18,6 +18,9 @@ export const metadata: Metadata = {
     "plausible deniability hidden volumes",
     "drand tlock time lock",
     "zero knowledge architecture",
+    "dead man's switch",
+    "trusted handover",
+    "encrypted notes beneficiary",
   ],
   alternates: { canonical: "/security" },
   openGraph: {
@@ -170,7 +173,7 @@ export default function SecurityPage() {
         <H2>Open-source backend</H2>
         <p className="mt-2 text-muted">
           The frontend is not the only thing you can audit. The Cloud
-          Functions code (the dead-man&apos;s-switch sweep), the Firestore
+          Functions code (the trusted-handover sweep), the Firestore
           security rules, and the deployment config &mdash; i.e. the
           actual boundary that stops Flowvault operators from reading or
           mutating your data &mdash; are published in the same repository
@@ -179,10 +182,11 @@ export default function SecurityPage() {
           end-to-end.
         </p>
 
-        <H2>Dead-man&apos;s switch</H2>
+        <H2>Trusted handover</H2>
         <p className="mt-2 text-muted">
-          You can configure a beneficiary who can decrypt the vault if you
-          stop checking in. The scheme is fully client-side:
+          You can nominate a trusted beneficiary who can decrypt the vault
+          if you stop checking in for a configurable interval. The scheme
+          is fully client-side:
         </p>
         <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted">
           <li>
@@ -213,8 +217,8 @@ export default function SecurityPage() {
           </li>
         </ol>
         <p className="mt-2 text-muted">
-          Honest trade-offs: the <em>existence</em> of a dead-man&apos;s
-          switch is visible to the server (we need it to schedule the
+          Honest trade-offs: the <em>existence</em> of a trusted handover
+          is visible to the server (we need it to schedule the
           sweep); the interval, grace and last-heartbeat timestamps are
           visible too. The wrapped key blob and beneficiary salt are opaque
           ciphertext. Give your beneficiary a password long enough to resist

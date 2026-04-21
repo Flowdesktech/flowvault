@@ -48,7 +48,7 @@ const HOMEPAGE_JSON_LD = {
       url: APP_URL,
       name: "Flowvault",
       description:
-        "Zero-knowledge encrypted notepad with plausible deniability, a dead-man's switch, drand-backed time-locked notes, self-destructing Encrypted Send, and .fvault encrypted backup & restore.",
+        "Zero-knowledge encrypted notepad with plausible deniability, a trusted handover to a beneficiary, drand-backed time-locked notes, self-destructing Encrypted Send, and .fvault encrypted backup & restore.",
       publisher: { "@id": `${APP_URL}/#organization` },
       inLanguage: "en",
     },
@@ -59,14 +59,14 @@ const HOMEPAGE_JSON_LD = {
       operatingSystem: "Web",
       url: APP_URL,
       description:
-        "An open-source zero-knowledge encrypted online notepad. Argon2id + AES-256-GCM, plausible-deniability hidden volumes, multi-notebook tabs per password, a client-wrapped dead-man's switch, drand-backed time-locked notes, self-destructing Encrypted Send, and a .fvault encrypted backup format that round-trips every slot without decrypting anything server-side.",
+        "An open-source zero-knowledge encrypted online notepad. Argon2id + AES-256-GCM, plausible-deniability hidden volumes, multi-notebook tabs per password, a client-wrapped trusted handover that releases the vault to a beneficiary if you stop checking in, drand-backed time-locked notes, self-destructing Encrypted Send, and a .fvault encrypted backup format that round-trips every slot without decrypting anything server-side.",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       featureList: [
         "Client-side Argon2id key derivation",
         "AES-256-GCM authenticated encryption",
         "Plausible-deniability hidden-volume format",
         "Multi-notebook tabs per password (all inside one encrypted slot)",
-        "Client-wrapped dead-man's switch",
+        "Client-wrapped trusted handover that releases to a beneficiary if you stop checking in",
         "Drand-backed time-locked notes",
         "Encrypted Send: self-destructing, view-capped one-time notes",
         "Zero-knowledge .fvault backup and restore (migrate or self-host without decrypting server-side)",
@@ -129,8 +129,8 @@ export default function HomePage() {
           />
           <Feature
             icon={<Clock size={18} />}
-            title="Dead-man's switch"
-            body="Arm a vault to auto-release to a beneficiary password if you stop checking in. Wrapped key is client-side; release is server-scheduled."
+            title="Trusted handover"
+            body="Pick a beneficiary and a check-in cadence. If you go quiet past the interval, a hand-wrapped key unlocks the vault for them — and nobody sooner."
           />
           <Feature
             icon={<Clock size={18} />}
@@ -351,7 +351,7 @@ export default function HomePage() {
                   oursGood
                 />
                 <Row
-                  label="Dead-man's switch"
+                  label="Trusted handover to a beneficiary"
                   ours="Yes"
                   theirs={<X className="inline" size={14} />}
                   oursGood

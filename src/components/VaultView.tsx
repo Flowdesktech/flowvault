@@ -116,10 +116,10 @@ export function VaultView({ slug }: { slug: string }) {
           return { error: "Wrong beneficiary password." };
         }
         if (res.kind === "not-released") {
-          return { error: "This vault is no longer in the released state." };
+          return { error: "This vault is no longer in the handed-over state." };
         }
         if (res.kind === "no-deadman") {
-          return { error: "This vault has no dead-man's switch configured." };
+          return { error: "This vault has no trusted handover configured." };
         }
         return { error: "Vault not found." };
       } catch (e) {

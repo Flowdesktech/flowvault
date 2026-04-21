@@ -252,7 +252,7 @@ export async function updateSiteCiphertext(input: {
     }
     if (current.deadman?.released) {
       throw new Error(
-        "vault has been released by the dead-man's switch and is read-only",
+        "vault has been handed over to its beneficiary and is read-only",
       );
     }
     const next = current.version + 1;

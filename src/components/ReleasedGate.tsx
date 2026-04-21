@@ -49,12 +49,12 @@ export function ReleasedGate({
         </span>
         <div>
           <p className="text-xs uppercase tracking-wider text-warning">
-            Vault released
+            Vault handed over
           </p>
           <p className="text-sm text-foreground">/s/{slug}</p>
           {releasedAt ? (
             <p className="mt-1 text-xs text-muted">
-              The dead-man&apos;s switch fired on{" "}
+              The trusted handover fired on{" "}
               {new Date(releasedAt).toLocaleString()}. The owner did not check
               in within the configured window. The vault is read-only and the
               beneficiary password unlocks it.
@@ -74,7 +74,7 @@ export function ReleasedGate({
 
       <p className="mt-4 text-xs leading-relaxed text-muted">
         {tab === "beneficiary"
-          ? "Enter the beneficiary password the owner shared with you out of band. It unwraps the vault key and decrypts the released notebook."
+          ? "Enter the beneficiary password the owner shared with you out of band. It unwraps the vault key and decrypts the notebook that was handed over to you."
           : "If you're the original owner, your normal vault password still works in read-only mode. (To start a fresh vault, pick a new URL — this one is locked against further writes.)"}
       </p>
 

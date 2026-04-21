@@ -191,7 +191,7 @@ export function Editor() {
                 setStatus({
                   kind: "error",
                   message:
-                    "This vault was released by the dead-man's switch while you were editing. No further writes accepted.",
+                    "This vault was handed over to its beneficiary while you were editing. No further writes accepted.",
                 });
                 return;
               }
@@ -220,7 +220,7 @@ export function Editor() {
         const err = e as { code?: string; message?: string };
         const msg =
           err?.code === "permission-denied"
-            ? "Save rejected by the server. If you configured a dead-man's switch, it may have released this vault. Reload to refresh."
+            ? "Save rejected by the server. If you configured a trusted handover, it may have already handed this vault over to its beneficiary. Reload to refresh."
             : (err?.message ?? "Save failed.");
         setStatus({ kind: "error", message: msg });
       } finally {
@@ -328,8 +328,8 @@ export function Editor() {
       {readOnly ? (
         <div className="mb-3 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs leading-relaxed text-foreground">
           {open.beneficiary
-            ? "Beneficiary view: this vault was released by the dead-man's switch. You can read but not modify it."
-            : "This vault has been released by the dead-man's switch and is locked against further writes. To start fresh, create a new vault under a new URL."}
+            ? "Beneficiary view: this vault was handed over to you because the owner stopped checking in. You can read but not modify it."
+            : "This vault has been handed over to its beneficiary and is locked against further writes. To start fresh, create a new vault under a new URL."}
         </div>
       ) : null}
       <div className="flex items-center justify-between gap-3">
@@ -347,9 +347,9 @@ export function Editor() {
                 variant="secondary"
                 size="sm"
                 onClick={() => setDeadmanOpen(true)}
-                title="Configure the dead-man's switch: release this vault to a beneficiary if you stop checking in"
+                title="Set up a trusted handover: hand this vault over to a beneficiary if you stop checking in for a configurable interval"
               >
-                <Clock size={14} /> Switch
+                <Clock size={14} /> Handover
               </Button>
               <Button
                 variant="secondary"
@@ -736,9 +736,9 @@ function DeadmanChip({ onClick }: { onClick: () => void }) {
       <button
         onClick={onClick}
         className="inline-flex items-center gap-1.5 rounded-md border border-danger/40 bg-danger/10 px-2 py-1 text-xs text-danger hover:bg-danger/20"
-        title="This vault has been released by the dead-man's switch."
+        title="This vault has been handed over to its beneficiary."
       >
-        <CircleAlert size={12} /> Released
+        <CircleAlert size={12} /> Handed over
       </button>
     );
   }
@@ -753,7 +753,7 @@ function DeadmanChip({ onClick }: { onClick: () => void }) {
     <button
       onClick={onClick}
       className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs ${tone}`}
-      title={`Dead-man's switch active. Releases ${
+      title={`Trusted handover active. Hands over ${
         expiresAt ? new Date(expiresAt).toLocaleString() : "after the next interval"
       } if you don't save.`}
     >

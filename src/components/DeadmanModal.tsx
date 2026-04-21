@@ -41,8 +41,8 @@ export function DeadmanModal({ open, onClose }: Props) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Dead-man's switch"
-      description="If you stop checking in, a beneficiary you trust can decrypt this vault."
+      title="Trusted handover"
+      description="If you stop checking in for a while, a beneficiary you trust can decrypt this vault."
     >
       {/* Body is conditionally rendered so its local state resets each time
           the modal is opened. Without this, closing + reopening would
@@ -71,7 +71,7 @@ function ModalBody({ onClose }: { onClose: () => void }) {
     if (!bp1) return setErr("Enter a beneficiary password.");
     if (bp1.length < 12)
       return setErr(
-        "Use at least 12 characters. The beneficiary password is the only thing protecting your vault if it's ever released.",
+        "Use at least 12 characters. The beneficiary password is the only thing protecting your vault if it's ever handed over.",
       );
     if (bp1 !== bp2) return setErr("Passwords do not match.");
 
@@ -111,7 +111,7 @@ function ModalBody({ onClose }: { onClose: () => void }) {
       });
       onClose();
     } catch (e) {
-      setErr((e as Error).message ?? "Could not arm the dead-man's switch.");
+      setErr((e as Error).message ?? "Could not enable the trusted handover.");
     } finally {
       setBusy(false);
     }
@@ -280,7 +280,7 @@ function ConfigureForm({
 
       <div className="flex items-center justify-end gap-2">
         <Button type="submit" size="md" disabled={busy}>
-          <Clock size={14} /> {busy ? "Arming…" : "Arm dead-man's switch"}
+          <Clock size={14} /> {busy ? "Enabling…" : "Enable trusted handover"}
         </Button>
       </div>
     </form>
@@ -311,12 +311,12 @@ function ConfiguredView({
           <p className="flex items-start gap-2">
             <AlertTriangle size={14} className="mt-0.5 shrink-0 text-danger" />
             <span>
-              <strong className="text-foreground">This vault has been released.</strong>{" "}
-              The dead-man&apos;s switch fired because no save happened
-              within the configured window. The beneficiary can now decrypt
-              this URL by entering the beneficiary password. The vault is
-              also locked against further writes; if you still need to use
-              it privately, create a new vault under a new URL.
+              <strong className="text-foreground">This vault has been handed over.</strong>{" "}
+              The trusted handover fired because no save happened within
+              the configured window. The beneficiary can now decrypt this
+              URL by entering the beneficiary password. The vault is also
+              locked against further writes; if you still need to use it
+              privately, create a new vault under a new URL.
             </span>
           </p>
         </div>
@@ -328,7 +328,7 @@ function ConfiguredView({
               <strong className="text-foreground">Active.</strong> Each save
               counts as a check-in. As long as you save before the interval
               expires (plus the grace), nothing happens. If not, the vault
-              is released and your beneficiary can decrypt it.
+              is handed over to your beneficiary, who can then decrypt it.
             </span>
           </p>
         </div>
@@ -353,7 +353,7 @@ function ConfiguredView({
         </div>
         <div>
           <dt className="text-muted">
-            {isReleased ? "Released" : "Releases at"}
+            {isReleased ? "Handed over" : "Hands over at"}
           </dt>
           <dd className="font-medium">
             {expiresAt ? new Date(expiresAt).toLocaleString() : "—"}

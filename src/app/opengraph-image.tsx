@@ -101,7 +101,7 @@ export default function OG() {
           }}
         >
           Zero-knowledge encrypted notepad with plausible deniability, a
-          dead-man&apos;s switch, and drand time-locked notes. Fully
+          trusted handover, and drand time-locked notes. Fully
           open-source.
         </div>
 

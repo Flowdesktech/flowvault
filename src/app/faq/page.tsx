@@ -5,9 +5,9 @@ import Link from "next/link";
 import { DONATE_PATH, APP_URL } from "@/lib/config";
 
 const FAQ_TITLE =
-  "FAQ — Flowvault: encrypted online notepad, dead-man's switch, time-locked notes, Encrypted Send; ProtectedText / Standard Notes / CryptPad / Privnote / Bitwarden Send alternative";
+  "FAQ — Flowvault: encrypted online notepad, dead-man's switch, time-locked notes, Encrypted Send, encrypted backup & restore; ProtectedText / Standard Notes / CryptPad / Privnote / Bitwarden Send alternative";
 const FAQ_DESCRIPTION =
-  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how the dead-man's switch releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, how Encrypted Send creates self-destructing one-time links with view caps and optional passwords, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, OneTimeSecret, PrivateBin, Yopass, Notesnook, Joplin, Obsidian, Bitwarden Send, 1Password Share, and Skiff Notes.";
+  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how the dead-man's switch releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, how Encrypted Send creates self-destructing one-time links with view caps and optional passwords, how zero-knowledge .fvault backup and restore let you migrate or self-host without decrypting anything server-side, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, OneTimeSecret, PrivateBin, Yopass, Notesnook, Joplin, Obsidian, Bitwarden Send, 1Password Share, and Skiff Notes.";
 
 export const metadata: Metadata = {
   title: FAQ_TITLE,
@@ -32,6 +32,17 @@ export const metadata: Metadata = {
     "one-time secret link",
     "self-destructing note",
     "burn after reading",
+    "encrypted notepad backup",
+    "zero-knowledge backup file",
+    "Flowvault backup",
+    "Flowvault export",
+    "Flowvault restore",
+    "export encrypted notes",
+    "encrypted notepad to Markdown",
+    "migrate ProtectedText notes",
+    "self-host encrypted notepad",
+    "fvault backup format",
+    "portable encrypted note file",
   ],
   alternates: { canonical: "/faq" },
   openGraph: {
@@ -899,6 +910,228 @@ const FEATURES: QA[] = [
   },
 ];
 
+const BACKUP: QA[] = [
+  {
+    q: "Can I back up my Flowvault notes?",
+    a: (
+      <>
+        Yes. Open any vault and click{" "}
+        <Strong>Export &rarr; Encrypted backup (.fvault)</Strong> in
+        the toolbar. You get a single file containing the full
+        ciphertext blob plus the Argon2id salt, KDF parameters, and
+        volume layout &mdash; exactly what the server stores. The
+        backup is still zero-knowledge: reading it requires your
+        password, and every decoy slot remains indistinguishable from
+        random bytes inside it. Restore later from{" "}
+        <Link href="/restore" className="text-accent hover:underline">
+          /restore
+        </Link>{" "}
+        on this instance or on a self-hosted Flowvault.
+      </>
+    ),
+  },
+  {
+    q: "Is the .fvault backup file itself encrypted?",
+    a: (
+      <>
+        Yes. The ciphertext inside the backup is the same AES-256-GCM
+        ciphertext the server holds, still keyed by Argon2id over your
+        password and the per-vault salt. If a backup file leaks, an
+        attacker has to do the same offline brute-force work they&apos;d
+        do against a stolen Firestore document &mdash; nothing more,
+        nothing less. The thin JSON envelope around the bytes is
+        plaintext, but it only carries metadata that the server already
+        stores (salt, KDF params, volume layout, slug hint), so the
+        file isn&apos;t any more revealing than a copy of the database
+        row.
+      </>
+    ),
+  },
+  {
+    q: "How do I restore a Flowvault backup?",
+    a: (
+      <>
+        Go to{" "}
+        <Link href="/restore" className="text-accent hover:underline">
+          /restore
+        </Link>
+        , drop your <Code>.fvault</Code> file, pick a fresh URL, and
+        click <Strong>Restore vault</Strong>. We write the ciphertext
+        and its original KDF/volume metadata into Firestore under that
+        new slug. You never type a password during restore &mdash;
+        there&apos;s no decryption happening server-side. Once the site
+        exists, open it as normal and enter the password(s) you used
+        before. Every slot (every decoy password) comes back intact.
+      </>
+    ),
+  },
+  {
+    q: "Why does restore block me from overwriting an existing vault?",
+    a: (
+      <>
+        Safety. Restoring onto an existing slug could silently destroy
+        a notebook under a password you don&apos;t know about. We
+        intentionally refuse rather than ask you to re-authenticate,
+        because proving knowledge of <em>one</em> password wouldn&apos;t
+        prove knowledge of the others that might be hidden in the same
+        blob. Pick a new slug, or start a fresh vault and migrate
+        content manually.
+      </>
+    ),
+  },
+  {
+    q: "Can I export my notes as plaintext Markdown for Obsidian, Standard Notes, or a git repo?",
+    a: (
+      <>
+        Yes &mdash; the same <Strong>Export</Strong> menu in the
+        editor has a <Strong>Plaintext Markdown (.zip)</Strong>{" "}
+        option. Each tab in the currently-unlocked slot becomes one{" "}
+        <Code>.md</Code> file in the zip, plus a{" "}
+        <Code>README.md</Code> index. The export is limited to the
+        slot you&apos;re looking at &mdash; other passwords&apos; decoy
+        slots are <em>never</em> included, which keeps plausible
+        deniability intact even if you&apos;re exporting under
+        coercion. We also show an explicit confirmation before writing
+        any plaintext to disk.
+      </>
+    ),
+  },
+  {
+    q: "Does ProtectedText have an export / backup feature?",
+    a: (
+      <>
+        Not out of the box. ProtectedText has no export button, no
+        API, and no backup file &mdash; the closest you can get is
+        unlocking the note in the browser and manually copying the
+        text. Flowvault&apos;s <Code>.fvault</Code> backup preserves
+        your notes <em>encrypted</em>, so you can store copies on a
+        USB stick, in another cloud, or on a friend&apos;s machine
+        without ever exposing plaintext. If you want to migrate{" "}
+        <em>into</em> Flowvault from ProtectedText today, the
+        practical path is: unlock your note there, copy the text, paste
+        it into a new Flowvault notebook. A guided importer is on the
+        roadmap.
+      </>
+    ),
+  },
+  {
+    q: "Can I self-host Flowvault and move my backups there?",
+    a: (
+      <>
+        Yes. The whole stack &mdash; Next.js frontend, Cloud Functions
+        (the dead-man&apos;s-switch sweep and the Encrypted Send read
+        path), and Firestore security rules &mdash; is in one public
+        repository. Bring your own Firebase project, deploy the rules
+        and Functions, point the frontend at it, and drop a{" "}
+        <Code>.fvault</Code> file onto <Code>/restore</Code>. Because
+        the backup format includes the KDF parameters and volume
+        layout that produced the ciphertext, vaults made on the
+        hosted Flowvault will open on your self-hosted one with the
+        same password.
+      </>
+    ),
+  },
+  {
+    q: "What exactly is inside a .fvault file?",
+    a: (
+      <>
+        A single JSON envelope with these fields:
+        <ul className="mt-3 list-disc space-y-1 pl-5">
+          <li>
+            <Code>kind</Code> = <Code>&quot;flowvault-backup&quot;</Code>{" "}
+            and <Code>version</Code> (currently 1).
+          </li>
+          <li>
+            <Code>exportedAt</Code> and an optional{" "}
+            <Code>slugHint</Code> so the restore UI can prefill a
+            sensible URL.
+          </li>
+          <li>
+            <Code>kdfSalt</Code> (base64url) &mdash; the per-vault
+            Argon2id salt.
+          </li>
+          <li>
+            <Code>kdfParams</Code> &mdash; algorithm (argon2id), memory
+            cost, iteration count, parallelism, key length.
+          </li>
+          <li>
+            <Code>volume</Code> &mdash; slot count, slot size, and
+            frame version.
+          </li>
+          <li>
+            <Code>ciphertext</Code> (base64url) &mdash; the
+            fixed-size hidden-volume blob, byte-for-byte identical to
+            what lives in Firestore.
+          </li>
+        </ul>
+        <p className="mt-3">
+          No passwords, no keys, no plaintext, no per-slot metadata.
+          You can inspect any <Code>.fvault</Code> with a plain text
+          editor to verify that for yourself.
+        </p>
+      </>
+    ),
+  },
+  {
+    q: "Do other encrypted notepads have a zero-knowledge backup format?",
+    a: (
+      <>
+        Most have <em>some</em> export, but usually as plaintext:
+        <ul className="mt-3 list-disc space-y-1 pl-5">
+          <li>
+            <Strong>Standard Notes</Strong> exports to a JSON/zip of
+            plaintext items (optionally into an encrypted archive on
+            Plus/Pro). An account is required.
+          </li>
+          <li>
+            <Strong>CryptPad</Strong> has per-pad exports to{" "}
+            <Code>.md</Code> / <Code>.html</Code> / raw &mdash; all
+            plaintext.
+          </li>
+          <li>
+            <Strong>Bitwarden</Strong> exports to plaintext JSON/CSV
+            (or a password-protected JSON variant; the secret is
+            chosen at export time, not derived from your vault
+            password).
+          </li>
+          <li>
+            <Strong>Notesnook</Strong> exports encrypted backups (.nnbackup)
+            behind an account and subscription, parallel to Flowvault&apos;s
+            <Code>.fvault</Code> in spirit.
+          </li>
+          <li>
+            <Strong>ProtectedText</Strong> / <Strong>Privnote</Strong>{" "}
+            / <Strong>PrivateBin</Strong>: no export feature at all.
+          </li>
+        </ul>
+        <p className="mt-3">
+          Flowvault&apos;s angle is that the backup is{" "}
+          <em>the same ciphertext you already trust on our server</em>,
+          with no account tying it to you. Handing the file to a
+          stranger is no worse than handing them your URL.
+        </p>
+      </>
+    ),
+  },
+  {
+    q: "How often should I back up?",
+    a: (
+      <>
+        Flowvault backups are only as fresh as the moment you
+        downloaded them, so treat them like snapshots, not live
+        mirrors. A reasonable rhythm:{" "}
+        <Strong>one backup after any major edit you can&apos;t afford
+        to lose</Strong>, plus a monthly rolling snapshot if you use
+        the vault for long-form notes. The file is ~680 KiB regardless
+        of how much you&apos;ve written (fixed-size ciphertext), so
+        storing many snapshots is cheap. Some users pair this with a
+        dead-man&apos;s switch: the backup protects against data loss,
+        the switch against you being unable to unlock it.
+      </>
+    ),
+  },
+];
+
 const COMPANY: QA[] = [
   {
     q: "Who builds Flowvault?",
@@ -1124,6 +1357,7 @@ export default function FAQPage() {
     SECURITY,
     FEATURES,
     USAGE,
+    BACKUP,
     COMPANY,
   ]);
   return (
@@ -1136,10 +1370,11 @@ export default function FAQPage() {
         <p className="mt-3 text-muted">
           Questions we get (or expect to get) about our zero-knowledge
           encrypted notepad, the dead-man&apos;s switch, drand-backed
-          time-locked notes, and how Flowvault compares to
-          ProtectedText, Standard Notes, CryptPad, and other
-          alternatives. If yours isn&apos;t here, open an issue on
-          GitHub.
+          time-locked notes, Encrypted Send,{" "}
+          <Code>.fvault</Code> encrypted backups and restore, and how
+          Flowvault compares to ProtectedText, Standard Notes,
+          CryptPad, and other alternatives. If yours isn&apos;t here,
+          open an issue on GitHub.
         </p>
 
         <Section title="About Flowvault" items={ABOUT} />
@@ -1153,6 +1388,10 @@ export default function FAQPage() {
           items={FEATURES}
         />
         <Section title="Using Flowvault" items={USAGE} />
+        <Section
+          title="Backup, restore & migration (.fvault, Markdown export, self-hosting)"
+          items={BACKUP}
+        />
         <Section title="Project" items={COMPANY} />
       </main>
       <footer className="border-t border-border/60 py-6 text-center text-xs text-muted">

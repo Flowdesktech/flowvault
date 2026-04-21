@@ -20,6 +20,7 @@ import {
   Heart,
   Send,
   Notebook,
+  Download,
 } from "lucide-react";
 
 /**
@@ -47,7 +48,7 @@ const HOMEPAGE_JSON_LD = {
       url: APP_URL,
       name: "Flowvault",
       description:
-        "Zero-knowledge encrypted notepad with plausible deniability, a dead-man's switch, and drand-backed time-locked notes.",
+        "Zero-knowledge encrypted notepad with plausible deniability, a dead-man's switch, drand-backed time-locked notes, self-destructing Encrypted Send, and .fvault encrypted backup & restore.",
       publisher: { "@id": `${APP_URL}/#organization` },
       inLanguage: "en",
     },
@@ -58,7 +59,7 @@ const HOMEPAGE_JSON_LD = {
       operatingSystem: "Web",
       url: APP_URL,
       description:
-        "An open-source zero-knowledge encrypted online notepad. Argon2id + AES-256-GCM, plausible-deniability hidden volumes, a client-wrapped dead-man's switch, and drand-backed time-locked notes.",
+        "An open-source zero-knowledge encrypted online notepad. Argon2id + AES-256-GCM, plausible-deniability hidden volumes, multi-notebook tabs per password, a client-wrapped dead-man's switch, drand-backed time-locked notes, self-destructing Encrypted Send, and a .fvault encrypted backup format that round-trips every slot without decrypting anything server-side.",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       featureList: [
         "Client-side Argon2id key derivation",
@@ -68,6 +69,8 @@ const HOMEPAGE_JSON_LD = {
         "Client-wrapped dead-man's switch",
         "Drand-backed time-locked notes",
         "Encrypted Send: self-destructing, view-capped one-time notes",
+        "Zero-knowledge .fvault backup and restore (migrate or self-host without decrypting server-side)",
+        "Plaintext Markdown (.zip) export for the current slot",
         "No account required",
         "Open source (frontend + Cloud Functions + Firestore rules)",
       ],
@@ -173,6 +176,23 @@ export default function HomePage() {
             ctaLabel="Send a secret"
           />
           <Feature
+            icon={<Download size={18} />}
+            title="Encrypted backup & restore"
+            body={
+              <>
+                Download a vault as a single <code>.fvault</code>{" "}
+                file &mdash; opaque ciphertext plus KDF parameters,
+                no passwords inside. Restore on any Flowvault instance
+                (including a self-hosted one) at a fresh URL and every
+                slot, including decoys, comes back intact. A plaintext
+                Markdown export is available too, behind a
+                confirmation, for migrating out.
+              </>
+            }
+            href="/restore"
+            ctaLabel="Restore from backup"
+          />
+          <Feature
             icon={<Code2 size={18} />}
             title="Fully open source"
             body="Frontend, Cloud Functions, Firestore rules, and deployment config are all in the public repo. Audit every line that touches your data — or self-host the entire stack."
@@ -247,6 +267,11 @@ export default function HomePage() {
               icon={<Send size={16} />}
               title="Self-destructing Encrypted Send"
               body="A Bitwarden-Send / Privnote-style one-shot link, but account-less and open source end-to-end. The AES-256 key lives in the URL fragment (never reaches our servers), views are enforced by a Cloud Function that hard-deletes the bytes on the last read, and an optional password adds a second gate even if the link leaks."
+            />
+            <Reason
+              icon={<Download size={16} />}
+              title="Zero-knowledge backup & restore"
+              body="Download a full vault as a .fvault file — the same ciphertext the server holds, never decrypted anywhere. Restore to any Flowvault instance (including self-hosted) at a fresh URL and every slot, including decoy passwords, is preserved. ProtectedText has no export or backup function; Flowvault's format makes migration and self-hosting a one-click flow."
             />
           </div>
         </section>
@@ -350,6 +375,18 @@ export default function HomePage() {
                 <Row
                   label="Self-hostable"
                   ours={<Check className="inline text-success" size={14} />}
+                  theirs={<X className="inline" size={14} />}
+                  oursGood
+                />
+                <Row
+                  label="Encrypted backup / restore"
+                  ours="Yes — .fvault file preserves all slots, no password inside"
+                  theirs="No — notes only leave the browser as a manual copy-paste"
+                  oursGood
+                />
+                <Row
+                  label="Plaintext export (Markdown)"
+                  ours="Yes — current slot only, with explicit confirmation"
                   theirs={<X className="inline" size={14} />}
                   oursGood
                 />

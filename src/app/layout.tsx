@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 const TITLE =
   "Flowvault — zero-knowledge encrypted notepad with plausible deniability";
 const DESCRIPTION =
-  "A private, encrypted online notepad. Your notes never leave your browser in plaintext. Multiple passwords unlock different notebooks on the same URL — a deniable alternative to ProtectedText, Standard Notes, CryptPad, and Privnote, with a fully open-source frontend, Cloud Functions, and Firestore rules.";
+  "A private, encrypted online notepad. Your notes never leave your browser in plaintext. Multiple passwords unlock different notebooks on the same URL, and a zero-knowledge .fvault backup lets you migrate or self-host without ever decrypting on the server — a deniable alternative to ProtectedText, Standard Notes, CryptPad, and Privnote, with a fully open-source frontend, Cloud Functions, and Firestore rules.";
 
 /**
  * Resolve the canonical origin for `metadataBase`, falling back to the
@@ -58,6 +58,11 @@ export const metadata: Metadata = {
     "encrypted notes browser",
     "Argon2 notes",
     "AES-GCM notes",
+    "encrypted notepad backup",
+    "zero-knowledge backup",
+    "fvault backup file",
+    "export encrypted notes",
+    "self-host encrypted notepad",
     "Flowvault",
     "Flowdesk",
   ],

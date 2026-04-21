@@ -107,7 +107,11 @@ export default function Post() {
         the closed backend are the real differences. If you&apos;re
         already using ProtectedText for low-stakes personal notes,
         you&apos;re not in imminent danger; this is a design-philosophy
-        argument.
+        argument. The full technical comparison lives in{" "}
+        <A href="/blog/flowvault-vs-protectedtext">
+          the Flowvault vs ProtectedText head-to-head
+        </A>
+        .
       </Callout>
 
       <H2 id="standard-notes-notesnook">

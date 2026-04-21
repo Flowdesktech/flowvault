@@ -6,6 +6,7 @@ import TrustedHandover from "@/content/blog/trusted-handover-encrypted-notes-ben
 import TimeLockedNotes from "@/content/blog/time-locked-notes-drand-tlock";
 import EncryptedSendVs from "@/content/blog/encrypted-send-vs-bitwarden-send-privnote";
 import FvaultFormat from "@/content/blog/encrypted-backup-fvault-format";
+import FlowvaultVsProtectedText from "@/content/blog/flowvault-vs-protectedtext";
 
 /**
  * Public blog index. Every post is a TSX component (lives under
@@ -190,6 +191,33 @@ const POSTS_UNSORTED: BlogPost[] = [
     ],
     readMinutes: 10,
     Body: EncryptedSendVs,
+  },
+  {
+    slug: "flowvault-vs-protectedtext",
+    title:
+      "Flowvault vs ProtectedText: an honest, technical head-to-head",
+    subtitle:
+      "Shared philosophy, four specific differences, and where the 15-year-old incumbent still wins.",
+    description:
+      "A detailed comparison of Flowvault and ProtectedText: the legacy plaintext-password blob, AES-CBC vs AES-GCM, plausible deniability with hidden volumes, open-source scope, and a migration guide. Honest about where ProtectedText is still the better pick.",
+    excerpt:
+      "ProtectedText has been the default zero-knowledge notepad for 15+ years. Flowvault is a newer entrant with four specific technical differences: no legacy password-keyed blob, AES-GCM instead of AES-CBC, VeraCrypt-style hidden volumes, and an open-source server. Here's the honest head-to-head.",
+    publishedAt: "2026-04-21",
+    tags: ["comparison", "feature"],
+    keywords: [
+      "flowvault vs protectedtext",
+      "protectedtext alternative",
+      "protectedtext open source",
+      "protectedtext security",
+      "protectedtext vs",
+      "protectedtext export",
+      "protectedtext encryption",
+      "protectedtext review",
+      "encrypted notepad comparison",
+      "zero knowledge notepad comparison",
+    ],
+    readMinutes: 10,
+    Body: FlowvaultVsProtectedText,
   },
   {
     slug: "encrypted-backup-fvault-format",

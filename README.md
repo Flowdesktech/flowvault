@@ -1,21 +1,29 @@
 # Flowvault
 
-> **Available for hire** — I build privacy-first apps and take on contract
-> engineering or business-idea work. If you have a project, a product
-> concept, or just want someone who ships zero-knowledge / crypto UX
-> carefully, reach out: **[contact@flowdesk.tech](mailto:contact@flowdesk.tech)**.
+**A zero-knowledge encrypted notepad with plausible deniability.** One
+URL can hide multiple notebooks behind different passwords, and neither
+the server nor anyone who steals the ciphertext blob can tell how many
+notebooks actually exist.
 
-A zero-knowledge encrypted notepad with **plausible deniability** — a single
-URL can hide multiple notebooks behind different passwords, and the server
-cannot tell how many notebooks actually exist.
+**[Try it](https://flowvault.flowdesk.tech)** · **[Blog](https://flowvault.flowdesk.tech/blog)** · **[Security](https://flowvault.flowdesk.tech/security)** · **[Self-host](#setup)** · **[Donate](https://flowvault.flowdesk.tech/donate)**
 
-- **Live**: [https://flowvault.flowdesk.tech](https://flowvault.flowdesk.tech)
-- **Source**: [https://github.com/Flowdesktech/flowvault](https://github.com/Flowdesktech/flowvault) — frontend, Cloud Functions, and Firestore rules all in this repo
-- **Hire / business**: [contact@flowdesk.tech](mailto:contact@flowdesk.tech)
+What&rsquo;s unique in this category:
 
-Built with Next.js, Firebase Firestore for opaque ciphertext storage, and
-Firebase Functions for trusted-handover orchestration. All cryptography runs
-in the browser.
+- **Hidden volumes** &mdash; VeraCrypt-style plausible deniability for a browser notepad. One URL, up to 64 notebooks, each behind its own password. Empty slots are indistinguishable from real ciphertext. ([deep dive](https://flowvault.flowdesk.tech/blog/plausible-deniability-hidden-volumes-explained))
+- **Trusted handover** &mdash; nominate a beneficiary with a separate password; if you stop checking in for an interval you configure, the vault auto-hands over. No account required for either party. ([deep dive](https://flowvault.flowdesk.tech/blog/trusted-handover-encrypted-notes-beneficiary))
+- **Time-locked notes** &mdash; drand + tlock identity-based encryption, so even the sender can&rsquo;t decrypt a message before its target date. ([deep dive](https://flowvault.flowdesk.tech/blog/time-locked-notes-drand-tlock))
+- **Encrypted Send** &mdash; one-shot, self-destructing links for sharing a password or recovery phrase. Key in the URL fragment, view cap enforced server-side by a Cloud Function. ([vs Bitwarden Send / Privnote](https://flowvault.flowdesk.tech/blog/encrypted-send-vs-bitwarden-send-privnote))
+- **Zero-knowledge `.fvault` backup + plaintext Markdown export** &mdash; portable across self-hosted instances, still opaque on disk. ([format spec](https://flowvault.flowdesk.tech/blog/encrypted-backup-fvault-format))
+- **Open end-to-end.** Frontend, Cloud Functions, and Firestore security rules all live in this repo. MIT-licensed. Self-hostable. ([vs ProtectedText](https://flowvault.flowdesk.tech/blog/flowvault-vs-protectedtext))
+
+Built with Next.js, Firebase Firestore (opaque ciphertext storage),
+Firebase Functions, and client-side Argon2id (64 MiB / 3 iter) +
+AES-256-GCM. No account, no email, no phone number &mdash; a URL slug
+and a password is the whole identity system.
+
+> **Available for hire** &mdash; privacy-first apps, contract engineering,
+> and zero-knowledge UX work. Reach me at
+> **[contact@flowdesk.tech](mailto:contact@flowdesk.tech)**.
 
 ---
 

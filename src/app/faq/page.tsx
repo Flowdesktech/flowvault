@@ -1433,6 +1433,13 @@ export default function FAQPage() {
             >
               drand-backed time-locked notes
             </Link>
+            , an honest{" "}
+            <Link
+              href="/blog/flowvault-vs-protectedtext"
+              className="text-accent hover:underline"
+            >
+              Flowvault vs ProtectedText head-to-head
+            </Link>
             , a head-to-head of{" "}
             <Link
               href="/blog/encrypted-send-vs-bitwarden-send-privnote"

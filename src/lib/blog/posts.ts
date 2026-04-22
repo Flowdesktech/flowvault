@@ -7,6 +7,7 @@ import TimeLockedNotes from "@/content/blog/time-locked-notes-drand-tlock";
 import EncryptedSendVs from "@/content/blog/encrypted-send-vs-bitwarden-send-privnote";
 import FvaultFormat from "@/content/blog/encrypted-backup-fvault-format";
 import FlowvaultVsProtectedText from "@/content/blog/flowvault-vs-protectedtext";
+import BringYourOwnStorage from "@/content/blog/bring-your-own-storage-local-vaults";
 
 /**
  * Public blog index. Every post is a TSX component (lives under
@@ -243,6 +244,36 @@ const POSTS_UNSORTED: BlogPost[] = [
     ],
     readMinutes: 9,
     Body: FvaultFormat,
+  },
+  {
+    slug: "bring-your-own-storage-local-vaults",
+    title:
+      "Bring Your Own Storage: running Flowvault with the ciphertext on your own disk",
+    subtitle:
+      "A deep dive on the new .flowvault local-file backend — format, threat model, and the S3 / WebDAV adapters coming next.",
+    description:
+      "How Flowvault's Bring-Your-Own-Storage mode works: the .flowvault on-disk file format, the File System Access API, the in-file CAS counter for optimistic concurrency, what the server sees (nothing), why trusted handover is intentionally disabled for local vaults, the VaultStorageAdapter interface under the hood, and the S3-compatible / WebDAV backends planned next.",
+    excerpt:
+      "Flowvault 1.2 adds a local-file backend: your whole encrypted vault lives as a single .flowvault file on your own disk, and our servers never see the ciphertext. Here's the exact file format, the threat-model trade-offs, and what's next (S3, WebDAV, and beyond).",
+    publishedAt: "2026-04-22",
+    tags: ["feature", "format"],
+    keywords: [
+      "bring your own storage encrypted notepad",
+      "BYOS encrypted notes",
+      "local encrypted notepad file",
+      "local first encrypted notes browser",
+      "File System Access API encrypted notes",
+      ".flowvault local file format",
+      "offline encrypted notepad local file",
+      "self-hosted encrypted notes without a server",
+      "encrypted notes stored on my own device",
+      "S3 encrypted notes backend",
+      "WebDAV encrypted notes backend",
+      "VaultStorageAdapter",
+      "Flowvault local vault",
+    ],
+    readMinutes: 12,
+    Body: BringYourOwnStorage,
   },
 ];
 

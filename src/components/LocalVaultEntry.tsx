@@ -22,7 +22,7 @@
  * that fire from user clicks, and the decrypted output is transferred
  * to the `/local/<id>` route via the `handoff` module.
  */
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FolderOpen, HardDrive, Lock, Plus } from "lucide-react";
 import { Button } from "./ui/Button";
@@ -74,7 +74,22 @@ export function LocalVaultEntry() {
   const [confirm, setConfirm] = useState("");
   const [formErr, setFormErr] = useState<string | null>(null);
 
-  const supported = typeof window !== "undefined" && isFileSystemAccessSupported();
+  // Feature detection has to happen on the client (the File System
+  // Access API is not available during SSR), but we can't branch on
+  // that in the first render without mismatching the server-rendered
+  // HTML. Keep the buttons as "supported" on the server and on the
+  // first client render, then refine in a mount effect. Chromium
+  // users see the final state on the first paint; Firefox/Safari
+  // users see a brief enabled flash before the buttons disable
+  // themselves, which is acceptable and matches standard React
+  // hydration-safe feature-detection patterns.
+  const [mounted, setMounted] = useState(false);
+  const [supportedAfterMount, setSupportedAfterMount] = useState(true);
+  useEffect(() => {
+    setMounted(true);
+    setSupportedAfterMount(isFileSystemAccessSupported());
+  }, []);
+  const supported = !mounted || supportedAfterMount;
 
   const reset = useCallback(() => {
     setPassword("");
@@ -214,7 +229,7 @@ export function LocalVaultEntry() {
           <FolderOpen size={14} /> Open local vault
         </Button>
       </div>
-      {!supported ? (
+      {mounted && !supportedAfterMount ? (
         <p className="mt-2 text-center text-[11px] text-muted">
           Local vaults need the File System Access API. Works in Chrome,
           Edge, Brave, Arc. Hosted vaults work everywhere.

@@ -5,7 +5,7 @@ import { Button } from "./ui/Button";
 import { useVault } from "@/lib/store/vault";
 import { saveVault } from "@/lib/vault/service";
 import { slotCapacity } from "@/lib/crypto/volume";
-import { fetchSiteRefresh } from "@/lib/firebase/sites";
+import { getVaultStorage } from "@/lib/storage";
 import {
   bundleByteLength,
   getActive,
@@ -176,7 +176,9 @@ export function Editor() {
           // case (same user, two tabs, only one actively editing)
           // this is fully transparent.
           try {
-            const fresh = await fetchSiteRefresh(current.siteId);
+            const fresh = await getVaultStorage(current.siteId).refresh(
+              current.siteId,
+            );
             if (fresh) {
               syncFromServer({
                 blob: fresh.ciphertext,
@@ -295,6 +297,9 @@ export function Editor() {
 
   const pct = Math.min(100, Math.round((bundleBytes / capacity) * 100));
   const readOnly = open.beneficiary || open.deadman?.released === true;
+  // BYOS vaults cannot participate in the hosted handover sweep; hide
+  // the feature entirely rather than showing a disabled control.
+  const supportsDeadman = open.storageKind === "firestore";
   // A save is in flight when the status banner says "saving". The
   // inner editor area uses this to show a non-blocking spinner that
   // communicates "we're syncing" without stealing focus from the
@@ -334,28 +339,45 @@ export function Editor() {
       ) : null}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="rounded-md border border-border bg-background-elev px-2 py-1 font-mono text-xs text-muted">
-            /s/{open.slug}
+          <span
+            className="rounded-md border border-border bg-background-elev px-2 py-1 font-mono text-xs text-muted"
+            title={
+              open.storageKind === "localFile"
+                ? "Local vault (Bring Your Own Storage)"
+                : undefined
+            }
+          >
+            {open.storageKind === "localFile"
+              ? `local: ${open.displayLabel}`
+              : `/s/${open.displayLabel}`}
           </span>
           <StatusBadge status={status} />
-          <DeadmanChip onClick={() => setDeadmanOpen(true)} />
+          {supportsDeadman ? (
+            <DeadmanChip onClick={() => setDeadmanOpen(true)} />
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           {!readOnly ? (
             <>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setDeadmanOpen(true)}
-                title="Set up a trusted handover: hand this vault over to a beneficiary if you stop checking in for a configurable interval"
-              >
-                <Clock size={14} /> Handover
-              </Button>
+              {supportsDeadman ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setDeadmanOpen(true)}
+                  title="Set up a trusted handover: hand this vault over to a beneficiary if you stop checking in for a configurable interval"
+                >
+                  <Clock size={14} /> Handover
+                </Button>
+              ) : null}
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => setAddPasswordOpen(true)}
-                title="Register another password that opens a different notebook on this URL"
+                title={
+                  open.storageKind === "localFile"
+                    ? "Register another password that opens a different notebook in this local file"
+                    : "Register another password that opens a different notebook on this URL"
+                }
               >
                 <KeyRound size={14} /> Add password
               </Button>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { OpenVaultForm } from "@/components/OpenVaultForm";
+import { LocalVaultEntry } from "@/components/LocalVaultEntry";
 import { APP_URL, CONTACT_EMAIL, DONATE_PATH, GITHUB_URL } from "@/lib/config";
 import {
   ShieldCheck,
@@ -21,6 +22,7 @@ import {
   Send,
   Notebook,
   Download,
+  HardDrive,
 } from "lucide-react";
 
 /**
@@ -48,7 +50,7 @@ const HOMEPAGE_JSON_LD = {
       url: APP_URL,
       name: "Flowvault",
       description:
-        "Zero-knowledge encrypted notepad with plausible deniability, a trusted handover to a beneficiary, drand-backed time-locked notes, self-destructing Encrypted Send, and .fvault encrypted backup & restore.",
+        "Zero-knowledge encrypted notepad with plausible deniability, a trusted handover to a beneficiary, drand-backed time-locked notes, self-destructing Encrypted Send, Bring-Your-Own-Storage local vaults (.flowvault file), and .fvault encrypted backup & restore.",
       publisher: { "@id": `${APP_URL}/#organization` },
       inLanguage: "en",
     },
@@ -59,7 +61,7 @@ const HOMEPAGE_JSON_LD = {
       operatingSystem: "Web",
       url: APP_URL,
       description:
-        "An open-source zero-knowledge encrypted online notepad. Argon2id + AES-256-GCM, plausible-deniability hidden volumes, multi-notebook tabs per password, a client-wrapped trusted handover that releases the vault to a beneficiary if you stop checking in, drand-backed time-locked notes, self-destructing Encrypted Send, and a .fvault encrypted backup format that round-trips every slot without decrypting anything server-side.",
+        "An open-source zero-knowledge encrypted online notepad. Argon2id + AES-256-GCM, plausible-deniability hidden volumes, multi-notebook tabs per password, a client-wrapped trusted handover that releases the vault to a beneficiary if you stop checking in, drand-backed time-locked notes, self-destructing Encrypted Send, Bring-Your-Own-Storage local vaults stored as a single .flowvault file on your disk, and a .fvault encrypted backup format that round-trips every slot without decrypting anything server-side.",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       featureList: [
         "Client-side Argon2id key derivation",
@@ -69,6 +71,7 @@ const HOMEPAGE_JSON_LD = {
         "Client-wrapped trusted handover that releases to a beneficiary if you stop checking in",
         "Drand-backed time-locked notes",
         "Encrypted Send: self-destructing, view-capped one-time notes",
+        "Bring Your Own Storage: local-file vaults stored as a single .flowvault file on your device (File System Access API)",
         "Zero-knowledge .fvault backup and restore (migrate or self-host without decrypting server-side)",
         "Plaintext Markdown (.zip) export for the current slot",
         "No account required",
@@ -114,6 +117,21 @@ export default function HomePage() {
               CryptPad, Privnote?
             </Link>
           </p>
+
+          <div className="mt-6 border-t border-border/60 pt-4">
+            <p className="text-[11px] uppercase tracking-wider text-muted">
+              Bring your own storage
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Prefer to keep the ciphertext on your own disk? Store the
+              entire vault as a single{" "}
+              <code className="rounded bg-background-elev-2 px-1 py-0.5 font-mono text-[10px]">
+                .flowvault
+              </code>{" "}
+              file and nothing ever reaches our servers.
+            </p>
+            <LocalVaultEntry />
+          </div>
         </section>
 
         <section className="mt-20 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -191,6 +209,25 @@ export default function HomePage() {
             }
             href="/restore"
             ctaLabel="Restore from backup"
+          />
+          <Feature
+            icon={<HardDrive size={18} />}
+            title="Bring your own storage"
+            body={
+              <>
+                Prefer to keep the ciphertext off our servers entirely?
+                Store the whole vault as a single{" "}
+                <code>.flowvault</code> file on your device. Same
+                hidden-volume format, same Argon2id + AES-GCM, same
+                multi-notebook tabs &mdash; but reads and writes hit
+                your disk via the File System Access API. Great for
+                laptops you control, encrypted external drives, and
+                anyone who treats &ldquo;we can&apos;t see your
+                ciphertext&rdquo; as an even stronger claim than
+                &ldquo;we can&apos;t decrypt your ciphertext.&rdquo;
+                S3-compatible and WebDAV backends are on the roadmap.
+              </>
+            }
           />
           <Feature
             icon={<Code2 size={18} />}
@@ -375,6 +412,12 @@ export default function HomePage() {
                 <Row
                   label="Self-hostable"
                   ours={<Check className="inline text-success" size={14} />}
+                  theirs={<X className="inline" size={14} />}
+                  oursGood
+                />
+                <Row
+                  label="Bring Your Own Storage (vault lives on your device, not our servers)"
+                  ours="Yes — .flowvault local file via the File System Access API; S3-compatible & WebDAV planned"
                   theirs={<X className="inline" size={14} />}
                   oursGood
                 />

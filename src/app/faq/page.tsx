@@ -5,9 +5,9 @@ import Link from "next/link";
 import { DONATE_PATH, APP_URL } from "@/lib/config";
 
 const FAQ_TITLE =
-  "FAQ — Flowvault: encrypted online notepad, trusted handover to a beneficiary, time-locked notes, Encrypted Send, encrypted backup & restore; ProtectedText / Standard Notes / CryptPad / Privnote / Bitwarden Send alternative";
+  "FAQ — Flowvault: encrypted online notepad, Bring-Your-Own-Storage local vaults, trusted handover to a beneficiary, time-locked notes, Encrypted Send, encrypted backup & restore; ProtectedText / Standard Notes / CryptPad / Privnote / Bitwarden Send alternative";
 const FAQ_DESCRIPTION =
-  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how the trusted handover releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, how Encrypted Send creates self-destructing one-time links with view caps and optional passwords, how zero-knowledge .fvault backup and restore let you migrate or self-host without decrypting anything server-side, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, OneTimeSecret, PrivateBin, Yopass, Notesnook, Joplin, Obsidian, Bitwarden Send, 1Password Share, and Skiff Notes.";
+  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how Bring-Your-Own-Storage local vaults keep the entire ciphertext on your own disk as a single .flowvault file, how the trusted handover releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, how Encrypted Send creates self-destructing one-time links with view caps and optional passwords, how zero-knowledge .fvault backup and restore let you migrate or self-host without decrypting anything server-side, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, OneTimeSecret, PrivateBin, Yopass, Notesnook, Joplin, Obsidian, Bitwarden Send, 1Password Share, and Skiff Notes.";
 
 export const metadata: Metadata = {
   title: FAQ_TITLE,
@@ -49,6 +49,17 @@ export const metadata: Metadata = {
     "self-host encrypted notepad",
     "fvault backup format",
     "portable encrypted note file",
+    "bring your own storage encrypted notepad",
+    "BYOS encrypted notes",
+    "local encrypted notepad file",
+    "local first encrypted notes browser",
+    "File System Access API encrypted notes",
+    ".flowvault local file format",
+    "offline encrypted notepad local file",
+    "self-hosted encrypted notes without a server",
+    "encrypted notes stored on my own device",
+    "S3 encrypted notes backend",
+    "WebDAV encrypted notes backend",
   ],
   alternates: { canonical: "/faq" },
   openGraph: {
@@ -919,6 +930,256 @@ const FEATURES: QA[] = [
   },
 ];
 
+const BYOS: QA[] = [
+  {
+    q: "What is Bring Your Own Storage (BYOS) in Flowvault?",
+    a: (
+      <>
+        A mode where the vault&apos;s ciphertext doesn&apos;t live on our
+        servers at all. You pick a file on your own disk &mdash; say{" "}
+        <Code>D:\notes\journal.flowvault</Code> &mdash; and every save
+        writes the encrypted blob back to <em>that</em> file via your
+        browser&apos;s File System Access API. Same hidden-volume
+        format, same Argon2id + AES-256-GCM, same multi-notebook tabs
+        as a hosted vault. Flowvault just becomes the editor; your
+        disk is the database.
+      </>
+    ),
+  },
+  {
+    q: "How is BYOS different from the hosted Flowvault vault at /s/<slug>?",
+    a: (
+      <>
+        The cryptography is identical &mdash; same slots, same KDF,
+        same AES-GCM frames, same <Code>.fvault</Code> backup format.
+        The difference is <em>where the ciphertext lives</em>:
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>
+            <Strong>Hosted vault</Strong>:{" "}
+            <Code>flowvault.flowdesk.tech/s/&lt;slug&gt;</Code>. The
+            ciphertext is stored in our Firestore. Shareable URL.
+            Works from any device. Trusted handover and all
+            server-dependent features work.
+          </li>
+          <li>
+            <Strong>Local vault</Strong>:{" "}
+            <Code>flowvault.flowdesk.tech/local/&lt;uuid&gt;</Code>.
+            The ciphertext is a <Code>.flowvault</Code> file on your
+            disk. Only openable on a device that has the file. The
+            URL on its own is useless without the file. Trusted
+            handover is not available because it needs a server-held
+            scheduler.
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    q: "What does your server see for a local vault?",
+    a: (
+      <>
+        Essentially nothing that relates to the vault itself. The URL{" "}
+        <Code>/local/&lt;uuid&gt;</Code> is just a client-side route;
+        the UUID is generated in your browser, never posted back, and
+        the Next.js server doesn&apos;t know which file (if any) it
+        corresponds to. Your browser never uploads the ciphertext or
+        the file name to us. The one caveat is the editor chrome: if
+        you use server-dependent features while a local vault is
+        open &mdash; time-locked notes composition, Encrypted Send
+        &mdash; those specific flows still talk to our backend for
+        their own documents (a time-locked capsule, a send record),
+        same as they would from a hosted vault. They never see your
+        local vault&apos;s plaintext or ciphertext.
+      </>
+    ),
+  },
+  {
+    q: "Which browsers support local vaults?",
+    a: (
+      <>
+        BYOS relies on the{" "}
+        <a
+          href="https://developer.mozilla.org/en-US/docs/Web/API/File_System_API"
+          target="_blank"
+          rel="noreferrer"
+          className="text-accent hover:underline"
+        >
+          File System Access API
+        </a>
+        , currently available in Chromium-based browsers (Chrome, Edge,
+        Brave, Opera, Vivaldi, Arc) on desktop. Firefox and Safari
+        don&apos;t implement it yet, so the{" "}
+        &ldquo;Create / Open local vault&rdquo; buttons are disabled
+        there with a note. A hosted vault at <Code>/s/&lt;slug&gt;</Code>{" "}
+        still works in every browser. Mobile support for the API is
+        spotty; we treat desktop Chromium as the supported surface for
+        now.
+      </>
+    ),
+  },
+  {
+    q: "What's inside a .flowvault file on disk?",
+    a: (
+      <>
+        A small JSON header (format version, a per-file UUID, the
+        Argon2id salt, KDF parameters, volume layout, a monotonic{" "}
+        <Code>vaultVersion</Code> counter used for optimistic
+        concurrency, and timestamps) followed by the raw ciphertext
+        &mdash; the same fixed-size hidden-volume blob that would live
+        in Firestore for a hosted vault. No passwords, no derived
+        keys, no plaintext, no per-slot metadata. Opening the file in
+        a text editor will just show you the JSON preamble and then
+        binary noise. If a copy of the file leaks, an attacker has to
+        do exactly the same offline brute-force work they&apos;d face
+        against a stolen Firestore document &mdash; nothing more,
+        nothing less.
+      </>
+    ),
+  },
+  {
+    q: "How do I move a local vault between devices?",
+    a: (
+      <>
+        Copy the <Code>.flowvault</Code> file. That&apos;s the whole
+        state &mdash; put it on a USB stick, sync it through your
+        cloud of choice, email it to yourself encrypted, whatever
+        fits your threat model. On the other device, open Flowvault,
+        click <Strong>Open local vault</Strong>, point at the copied
+        file, and enter your password. The file is self-contained:
+        everything the editor needs (salt, KDF params, volume
+        layout, slots, CAS version) travels with it.
+      </>
+    ),
+  },
+  {
+    q: "What if I edit the same local vault from two devices?",
+    a: (
+      <>
+        Each save is gated by an optimistic CAS counter that lives
+        inside the file, so you won&apos;t silently clobber the other
+        side: whoever writes first wins, and the second writer sees a
+        conflict. That said, BYOS is not a sync engine. If both
+        devices edit the same vault without coordinating, you have
+        the usual merge problem of any file-backed tool. The safe
+        patterns are <em>(a)</em> edit in one place at a time, or{" "}
+        <em>(b)</em> keep separate vaults on separate devices and
+        merge manually. A proper sync story (conflict-free, offline,
+        auto-resolving) would need a different backend &mdash; see
+        the S3 / WebDAV question below.
+      </>
+    ),
+  },
+  {
+    q: "Does trusted handover work on local vaults?",
+    a: (
+      <>
+        No &mdash; and this is intentional. The trusted handover
+        relies on a Cloud Function running on a schedule to mark a
+        vault <Code>released</Code> after an inactivity interval,
+        which only makes sense for a document that lives in the
+        hosted Firestore. A local file sitting on your disk has no
+        server watching it. If you want the handover behavior, use a
+        hosted vault at <Code>/s/&lt;slug&gt;</Code>. The editor hides
+        the Handover button for local vaults so it doesn&apos;t
+        suggest a guarantee we can&apos;t keep.
+      </>
+    ),
+  },
+  {
+    q: "What about time-locked notes and Encrypted Send from a local vault?",
+    a: (
+      <>
+        Those still work &mdash; they have nothing to do with where
+        your <em>vault</em> lives. Composing a time-locked note or an
+        Encrypted Send from the editor stores the one-shot capsule /
+        send document in our backend the same way as always; only the
+        notebook text lives in your local file.
+      </>
+    ),
+  },
+  {
+    q: "How is this different from the .fvault backup file?",
+    a: (
+      <>
+        A <Code>.fvault</Code> is a{" "}
+        <Strong>point-in-time snapshot</Strong>, taken by clicking
+        Export. A <Code>.flowvault</Code> is the{" "}
+        <Strong>live vault</Strong> &mdash; every save in the editor
+        writes through to that file, same as a hosted vault writes
+        through to Firestore. You can still export a{" "}
+        <Code>.fvault</Code> from a local vault for cold storage, or
+        restore from a <Code>.fvault</Code> into a hosted vault at{" "}
+        <Link href="/restore" className="text-accent hover:underline">
+          /restore
+        </Link>
+        . The two formats are siblings: same ciphertext, different
+        roles.
+      </>
+    ),
+  },
+  {
+    q: "What happens if I lose my .flowvault file?",
+    a: (
+      <>
+        Your notes are gone. There is no copy on our servers. Treat
+        the file the way you treat a password manager&apos;s local
+        database or a VeraCrypt volume: back it up. An easy rhythm is
+        a periodic <Code>.fvault</Code> export into a separate folder
+        or cloud drive &mdash; the export is still zero-knowledge,
+        still needs your password, so it&apos;s fine to store in
+        places you wouldn&apos;t trust with plaintext.
+      </>
+    ),
+  },
+  {
+    q: "Are S3, WebDAV, and other storage backends coming?",
+    a: (
+      <>
+        Yes, on the roadmap if there&apos;s demand. The internal
+        storage layer was refactored into a <Code>VaultStorageAdapter</Code>{" "}
+        interface specifically so new backends plug in cleanly; the
+        local-file adapter was the first non-Firestore implementation.
+        Likely next candidates, in rough order:
+        <ul className="mt-3 list-disc space-y-1 pl-5">
+          <li>
+            <Strong>S3-compatible</Strong> (AWS S3, Cloudflare R2,
+            Backblaze B2, Wasabi, MinIO). Good for people who want
+            their ciphertext in an object store they already pay for,
+            with versioning turned on.
+          </li>
+          <li>
+            <Strong>WebDAV</Strong> (Nextcloud, ownCloud,
+            Storj-compatible gateways). Same idea, different wire
+            format; easy to self-host.
+          </li>
+          <li>
+            <Strong>IPFS / Storj / Arweave</Strong> for fully
+            decentralised storage, treated as a more experimental
+            tier.
+          </li>
+        </ul>
+        <p className="mt-3">
+          All of these would follow the same rule as local files: the
+          blob stays opaque, the adapter just moves bytes, and
+          server-dependent features (trusted handover, hosted routing)
+          stay on Flowvault. If a specific backend is a blocker for
+          you, please{" "}
+          <a
+            href="https://github.com/Flowdesktech/flowvault/issues/new"
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent hover:underline"
+          >
+            open a GitHub issue
+          </a>{" "}
+          and say so &mdash; prioritisation is driven by who actually
+          wants to use it.
+        </p>
+      </>
+    ),
+  },
+];
+
 const BACKUP: QA[] = [
   {
     q: "Can I back up my Flowvault notes?",
@@ -1366,6 +1627,7 @@ export default function FAQPage() {
     SECURITY,
     FEATURES,
     USAGE,
+    BYOS,
     BACKUP,
     COMPANY,
   ]);
@@ -1378,12 +1640,14 @@ export default function FAQPage() {
         </h1>
         <p className="mt-3 text-muted">
           Questions we get (or expect to get) about our zero-knowledge
-          encrypted notepad, the trusted handover to a beneficiary,
-          drand-backed time-locked notes, Encrypted Send,{" "}
-          <Code>.fvault</Code> encrypted backups and restore, and how
-          Flowvault compares to ProtectedText, Standard Notes,
-          CryptPad, and other alternatives. If yours isn&apos;t here,
-          open an issue on GitHub.
+          encrypted notepad, Bring-Your-Own-Storage local vaults
+          stored as a single <Code>.flowvault</Code> file on your
+          device, the trusted handover to a beneficiary, drand-backed
+          time-locked notes, Encrypted Send, <Code>.fvault</Code>{" "}
+          encrypted backups and restore, and how Flowvault compares to
+          ProtectedText, Standard Notes, CryptPad, and other
+          alternatives. If yours isn&apos;t here, open an issue on
+          GitHub.
         </p>
 
         <Section title="About Flowvault" items={ABOUT} />
@@ -1397,6 +1661,10 @@ export default function FAQPage() {
           items={FEATURES}
         />
         <Section title="Using Flowvault" items={USAGE} />
+        <Section
+          title="Bring Your Own Storage (local .flowvault files; S3 / WebDAV on the roadmap)"
+          items={BYOS}
+        />
         <Section
           title="Backup, restore & migration (.fvault, Markdown export, self-hosting)"
           items={BACKUP}

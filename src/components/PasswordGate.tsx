@@ -10,9 +10,25 @@ interface Props {
   exists: boolean;
   busy: boolean;
   onSubmit: (password: string) => Promise<{ error: string } | void>;
+  /**
+   * When set, the subtitle under "Unlock / Create vault" renders this
+   * exact string instead of `/s/<slug>`. Used by the BYOS local-vault
+   * route, where there is no public URL and the natural label is the
+   * file name the user picked.
+   */
+  displayOverride?: string;
+  /** Optional copy replacing the default explanatory paragraph. */
+  descriptionOverride?: React.ReactNode;
 }
 
-export function PasswordGate({ slug, exists, busy, onSubmit }: Props) {
+export function PasswordGate({
+  slug,
+  exists,
+  busy,
+  onSubmit,
+  displayOverride,
+  descriptionOverride,
+}: Props) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [show, setShow] = useState(false);
@@ -50,14 +66,17 @@ export function PasswordGate({ slug, exists, busy, onSubmit }: Props) {
           <p className="text-xs uppercase tracking-wider text-muted">
             {exists ? "Unlock" : "Create vault"}
           </p>
-          <p className="text-sm text-foreground">/s/{slug}</p>
+          <p className="text-sm text-foreground">
+            {displayOverride ?? `/s/${slug}`}
+          </p>
         </div>
       </div>
 
       <p className="mt-4 text-xs leading-relaxed text-muted">
-        {exists
-          ? "Enter a password. Different passwords may unlock different notebooks on this URL; nobody can tell which notebook is “real.”"
-          : "This vault does not exist yet. Choose a password to create it. Store it carefully — without it, your notes are unrecoverable."}
+        {descriptionOverride ??
+          (exists
+            ? "Enter a password. Different passwords may unlock different notebooks on this URL; nobody can tell which notebook is “real.”"
+            : "This vault does not exist yet. Choose a password to create it. Store it carefully — without it, your notes are unrecoverable.")}
       </p>
 
       <div className="mt-5 space-y-3">

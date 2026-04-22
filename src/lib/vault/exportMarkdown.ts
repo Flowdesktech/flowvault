@@ -183,7 +183,7 @@ function sanitizeFilename(title: string, used: Set<string>): string {
  */
 export function buildMarkdownZip(
   bundle: NotebookBundle,
-  slug: string,
+  slug: string | null,
 ): Uint8Array {
   const te = new TextEncoder();
   const used = new Set<string>();
@@ -199,8 +199,12 @@ export function buildMarkdownZip(
     manifest.push(`- [${n.title}](./${encodeURI(fname)})`);
   }
 
+  // Local vaults have no public URL, so the README just says "local
+  // vault" instead of an `/s/<slug>` banner. The file is plaintext
+  // either way; the label is informational.
+  const heading = slug ? `/s/${slug}` : "local vault";
   const readme =
-    `# Flowvault export — /s/${slug}\n\n` +
+    `# Flowvault export — ${heading}\n\n` +
     `Exported ${new Date().toISOString()}.\n\n` +
     `This archive is PLAINTEXT. Anyone with access to it can read every\n` +
     `tab in the slot that produced it. Store it somewhere you would\n` +
@@ -217,10 +221,10 @@ export function buildMarkdownZip(
  * tell encrypted and plaintext downloads apart at a glance.
  */
 export function suggestedMarkdownZipFilename(
-  slug: string,
+  slug: string | null,
   when: Date = new Date(),
 ): string {
   const iso = when.toISOString().slice(0, 10);
-  const safe = slug.replace(/[^a-z0-9_-]/gi, "-");
+  const safe = (slug ?? "vault").replace(/[^a-z0-9_-]/gi, "-");
   return `flowvault-${safe}-${iso}.plaintext.zip`;
 }

@@ -1,8 +1,10 @@
 /**
- * High-level vault operations that orchestrate crypto and Firestore access.
+ * High-level vault operations that orchestrate crypto and storage access.
  *
  * All calls here run in the browser. The server never sees passwords, derived
- * keys, or plaintext content.
+ * keys, or plaintext content. Storage is abstracted behind
+ * `getVaultStorage(siteId)` so the same service API works for Firestore-hosted
+ * vaults and Bring-Your-Own-Storage backends (currently: local file).
  */
 import { deriveMasterKey } from "@/lib/crypto/kdf";
 import { deriveSiteId } from "@/lib/crypto/siteId";
@@ -18,13 +20,14 @@ import {
 import { randomBytes } from "@/lib/crypto/random";
 import { utf8Decode, utf8Encode } from "@/lib/utils/bytes";
 import {
-  createSite,
-  fetchSite,
-  restoreSite,
-  updateSiteCiphertext,
-  type DeadmanRecord,
-  type KdfParamsRecord,
-} from "@/lib/firebase/sites";
+  getVaultStorage,
+  registerVaultStorageAdapter,
+} from "@/lib/storage";
+import type {
+  DeadmanRecord,
+  KdfParamsRecord,
+  VaultStorageAdapter,
+} from "@/lib/storage";
 import {
   createBundle,
   deserializeBundle,
@@ -37,13 +40,28 @@ import {
   type BackupEnvelope,
 } from "@/lib/vault/portable";
 import { KDF_PARAMS } from "@/lib/crypto/kdf";
+import {
+  decodeLocalVaultFile,
+  looksLikeLocalVaultFile,
+} from "@/lib/storage/localFile/format";
+import { createLocalFileVaultStorage } from "@/lib/storage/localFile/adapter";
+import {
+  ensurePermission,
+  rememberHandle,
+  touchOpened,
+} from "@/lib/storage/localFile/handleRegistry";
+import type { StorageKind } from "@/lib/store/vault";
 
 export const SALT_BYTES = 16;
 
 export interface OpenResult {
   kind: "opened";
-  slug: string;
+  /** Null for BYOS vaults that have no slug. */
+  slug: string | null;
   siteId: string;
+  storageKind: StorageKind;
+  /** File name for local vaults; slug for Firestore vaults. Always set. */
+  displayLabel: string;
   masterKey: Uint8Array;
   kdfSalt: Uint8Array;
   volume: VolumeParams;
@@ -64,13 +82,22 @@ export interface NotFoundResult {
 
 export type TryOpenResult = OpenResult | WrongPasswordResult | NotFoundResult;
 
-/** Attempt to open an existing vault. */
-export async function tryOpenVault(
-  slug: string,
-  password: string,
-): Promise<TryOpenResult> {
-  const siteId = await deriveSiteId(slug);
-  const site = await fetchSite(siteId);
+/**
+ * Shared opener: given an already-resolved siteId and a live storage
+ * adapter, attempt to decrypt the vault under `password`. The caller is
+ * responsible for registering the adapter against `siteId` in the
+ * dispatcher before invoking this so that subsequent save calls route
+ * to the same backend.
+ */
+async function tryOpenVaultWithAdapter(args: {
+  siteId: string;
+  slug: string | null;
+  storageKind: StorageKind;
+  displayLabel: string;
+  password: string;
+}): Promise<TryOpenResult> {
+  const { siteId, slug, storageKind, displayLabel, password } = args;
+  const site = await getVaultStorage(siteId).read(siteId);
   if (!site) return { kind: "not-found" };
 
   const masterKey = await deriveMasterKey(password, site.kdfSalt);
@@ -85,6 +112,8 @@ export async function tryOpenVault(
     kind: "opened",
     slug,
     siteId,
+    storageKind,
+    displayLabel,
     masterKey,
     kdfSalt: site.kdfSalt,
     volume,
@@ -96,10 +125,26 @@ export async function tryOpenVault(
   };
 }
 
+/** Attempt to open an existing Firestore-hosted vault. */
+export async function tryOpenVault(
+  slug: string,
+  password: string,
+): Promise<TryOpenResult> {
+  const siteId = await deriveSiteId(slug);
+  return tryOpenVaultWithAdapter({
+    siteId,
+    slug,
+    storageKind: "firestore",
+    displayLabel: slug,
+    password,
+  });
+}
+
 /**
- * Create a brand-new vault with the first password. The creator's notebook
- * lands in the deterministic slot for that password; all other slots stay as
- * random bytes so future decoy/real passwords can claim their own slots.
+ * Create a brand-new Firestore-hosted vault with the first password. The
+ * creator's notebook lands in the deterministic slot for that password;
+ * all other slots stay as random bytes so future decoy/real passwords
+ * can claim their own slots.
  */
 export async function createVault(
   slug: string,
@@ -107,11 +152,49 @@ export async function createVault(
   initialBundle?: NotebookBundle,
 ): Promise<OpenResult> {
   const siteId = await deriveSiteId(slug);
-  const existing = await fetchSite(siteId);
+  const existing = await getVaultStorage(siteId).read(siteId);
   if (existing) {
     throw new Error("That vault already exists. Try opening it instead.");
   }
 
+  const { blob, masterKey, kdfSalt, volume, slotIndex, bundle } =
+    await mintFreshVault(password, initialBundle);
+
+  await getVaultStorage(siteId).create({ siteId, ciphertext: blob, kdfSalt });
+
+  return {
+    kind: "opened",
+    slug,
+    siteId,
+    storageKind: "firestore",
+    displayLabel: slug,
+    masterKey,
+    kdfSalt,
+    volume,
+    slotIndex,
+    blob,
+    version: 1,
+    bundle,
+    deadman: null,
+  };
+}
+
+/**
+ * Derive the material for a freshly-minted vault. Shared by `createVault`
+ * (Firestore) and `createLocalVault` (local file) so the two paths stay
+ * byte-for-byte identical aside from where the ciphertext lands.
+ */
+async function mintFreshVault(
+  password: string,
+  initialBundle?: NotebookBundle,
+): Promise<{
+  kdfSalt: Uint8Array;
+  masterKey: Uint8Array;
+  volume: VolumeParams;
+  slotIndex: number;
+  bundle: NotebookBundle;
+  blob: Uint8Array;
+}> {
   const kdfSalt = randomBytes(SALT_BYTES);
   const masterKey = await deriveMasterKey(password, kdfSalt);
   const volume: VolumeParams = {
@@ -127,13 +210,57 @@ export async function createVault(
     throw new Error("initial content exceeds slot capacity");
   }
   const blob = await writeSlot(blank, masterKey, slotIndex, initialBytes, volume);
+  return { kdfSalt, masterKey, volume, slotIndex, bundle, blob };
+}
 
-  await createSite({ siteId, ciphertext: blob, kdfSalt });
+/** Mint a fresh UUID for a local vault's opaque site identity. */
+function mintLocalSiteId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  const b = randomBytes(16);
+  return Array.from(b)
+    .map((x) => x.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/**
+ * Create a brand-new BYOS vault backed by a user-picked local file.
+ *
+ * The file handle must point at an empty file (Save-As flow); the adapter
+ * refuses to overwrite non-empty contents. On success we register the
+ * adapter in the dispatcher and stamp the handle into IndexedDB so the
+ * user can return to this vault later via `/local/<localSiteId>`.
+ */
+export async function createLocalVault(args: {
+  handle: FileSystemFileHandle;
+  password: string;
+  initialBundle?: NotebookBundle;
+}): Promise<OpenResult> {
+  const granted = await ensurePermission(args.handle, "readwrite");
+  if (!granted) {
+    throw new Error(
+      "Permission to write to the selected file was not granted.",
+    );
+  }
+
+  const siteId = mintLocalSiteId();
+  const adapter = createLocalFileVaultStorage(args.handle, siteId);
+  registerVaultStorageAdapter(siteId, adapter);
+
+  const { blob, masterKey, kdfSalt, volume, slotIndex, bundle } =
+    await mintFreshVault(args.password, args.initialBundle);
+
+  await adapter.create({ siteId, ciphertext: blob, kdfSalt });
+  await rememberHandle(siteId, args.handle);
+  await touchOpened(siteId);
 
   return {
     kind: "opened",
-    slug,
+    slug: null,
     siteId,
+    storageKind: "localFile",
+    displayLabel: args.handle.name,
     masterKey,
     kdfSalt,
     volume,
@@ -143,6 +270,77 @@ export async function createVault(
     bundle,
     deadman: null,
   };
+}
+
+/**
+ * Attempt to open an existing BYOS vault backed by a user-picked local
+ * file.
+ *
+ * Reads the file header to discover its `localSiteId`, wires up a
+ * storage adapter for that id, and defers to the shared opener for key
+ * derivation and slot decryption. Re-stamps the handle into IndexedDB on
+ * success so future sessions can recall it by id.
+ */
+export async function tryOpenLocalVault(args: {
+  handle: FileSystemFileHandle;
+  password: string;
+}): Promise<TryOpenResult & { siteId?: string }> {
+  const granted = await ensurePermission(args.handle, "readwrite");
+  if (!granted) {
+    throw new Error(
+      "Permission to read the selected file was not granted.",
+    );
+  }
+
+  const file = await args.handle.getFile();
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (bytes.length === 0) return { kind: "not-found" };
+  if (!looksLikeLocalVaultFile(bytes)) {
+    throw new Error(
+      "That file is not a Flowvault local vault. If you meant to restore a .fvault backup, use the Restore page instead.",
+    );
+  }
+  const parsed = decodeLocalVaultFile(bytes);
+  const siteId = parsed.localSiteId;
+
+  const adapter = createLocalFileVaultStorage(args.handle, siteId);
+  registerVaultStorageAdapter(siteId, adapter);
+
+  const result = await tryOpenVaultWithAdapter({
+    siteId,
+    slug: null,
+    storageKind: "localFile",
+    displayLabel: args.handle.name,
+    password: args.password,
+  });
+
+  if (result.kind === "opened") {
+    await rememberHandle(siteId, args.handle);
+    await touchOpened(siteId);
+  }
+  return { ...result, siteId };
+}
+
+/**
+ * Open a BYOS vault from an already-bound adapter (e.g. a handle the
+ * caller recalled from IndexedDB for a known siteId). Distinct from
+ * `tryOpenLocalVault` because the caller has already peeked the file
+ * and knows its identity.
+ */
+export async function openLocalVaultWithAdapter(args: {
+  siteId: string;
+  displayLabel: string;
+  adapter: VaultStorageAdapter;
+  password: string;
+}): Promise<TryOpenResult> {
+  registerVaultStorageAdapter(args.siteId, args.adapter);
+  return tryOpenVaultWithAdapter({
+    siteId: args.siteId,
+    slug: null,
+    storageKind: "localFile",
+    displayLabel: args.displayLabel,
+    password: args.password,
+  });
 }
 
 export interface SaveInput {
@@ -180,7 +378,7 @@ export async function saveVault(input: SaveInput): Promise<SaveResult> {
     contentBytes,
     input.volume,
   );
-  const res = await updateSiteCiphertext({
+  const res = await getVaultStorage(input.siteId).writeCiphertext({
     siteId: input.siteId,
     ciphertext: nextBlob,
     expectedVersion: input.expectedVersion,
@@ -202,7 +400,8 @@ export async function saveVault(input: SaveInput): Promise<SaveResult> {
  * export click would flip the document to read-only.
  */
 export interface BuildBackupInput {
-  slug: string;
+  /** Informational slug hint; may be null for BYOS vaults. */
+  slug: string | null;
   ciphertext: Uint8Array;
   kdfSalt: Uint8Array;
   volume: { slotCount: number; slotSize: number; frameVersion?: number };
@@ -249,7 +448,7 @@ export async function restoreVaultFromBackup(input: {
   backup: BackupEnvelope;
 }): Promise<RestoreResult> {
   const siteId = await deriveSiteId(input.slug);
-  const existing = await fetchSite(siteId);
+  const existing = await getVaultStorage(siteId).read(siteId);
   if (existing) return { kind: "slug-taken" };
 
   // Defensive: re-check the size invariant even though decodeBackup
@@ -264,7 +463,7 @@ export async function restoreVaultFromBackup(input: {
   }
 
   try {
-    await restoreSite({
+    await getVaultStorage(siteId).restore({
       siteId,
       ciphertext: input.backup.ciphertext,
       kdfSalt: input.backup.kdfSalt,
@@ -353,7 +552,7 @@ export async function addDecoyPassword(
     bytes,
     input.volume,
   );
-  const res = await updateSiteCiphertext({
+  const res = await getVaultStorage(input.siteId).writeCiphertext({
     siteId: input.siteId,
     ciphertext: nextBlob,
     expectedVersion: input.currentVersion,

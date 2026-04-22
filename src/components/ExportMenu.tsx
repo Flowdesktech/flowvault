@@ -163,7 +163,8 @@ export function ExportMenu() {
       </div>
       {confirmPlain ? (
         <PlaintextConfirmDialog
-          slug={open.slug}
+          displayLabel={open.displayLabel}
+          storageKind={open.storageKind}
           tabCount={open.bundle.notebooks.length}
           onCancel={() => setConfirmPlain(false)}
           onConfirm={doPlaintextZip}
@@ -174,16 +175,20 @@ export function ExportMenu() {
 }
 
 function PlaintextConfirmDialog({
-  slug,
+  displayLabel,
+  storageKind,
   tabCount,
   onCancel,
   onConfirm,
 }: {
-  slug: string;
+  displayLabel: string;
+  storageKind: "firestore" | "localFile";
   tabCount: number;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const vaultRef =
+    storageKind === "localFile" ? displayLabel : `/s/${displayLabel}`;
   return (
     <div
       className="fixed inset-0 z-40 flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm"
@@ -200,7 +205,7 @@ function PlaintextConfirmDialog({
           This downloads the {tabCount}{" "}
           {tabCount === 1 ? "notebook" : "notebooks"} in the currently
           unlocked slot of{" "}
-          <span className="font-mono text-foreground">/s/{slug}</span>{" "}
+          <span className="font-mono text-foreground">{vaultRef}</span>{" "}
           as unencrypted Markdown files.
         </p>
         <ul className="mt-3 space-y-1 text-xs leading-relaxed text-muted">

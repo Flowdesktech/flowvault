@@ -7,9 +7,20 @@
  * `NotebookBundle` (one active + N tabs), not just one string. All
  * notebook-level mutations (type, rename, add, delete, switch tab) go
  * through the bundle helpers so serialization stays consistent.
+ *
+ * BYOS (Bring Your Own Storage) fields:
+ *   - `storageKind` tags whether the vault lives in Firestore (the hosted
+ *     default) or in a user-provided backend (currently: local file). The
+ *     editor uses it to gate features whose implementation is
+ *     server-dependent, most notably the Trusted Handover sweep.
+ *   - `slug` is `null` for local-file vaults, which have no public URL
+ *     segment. Chrome that needs to identify the vault should use
+ *     `displayLabel` instead so it renders something sensible regardless
+ *     of backend.
  */
 import { create } from "zustand";
 import type { DeadmanRecord } from "@/lib/firebase/sites";
+import { unregisterVaultStorageAdapter } from "@/lib/storage";
 import {
   addNotebook,
   getActive,
@@ -21,9 +32,19 @@ import {
   type NotebookBundle,
 } from "@/lib/vault/notebooks";
 
+export type StorageKind = "firestore" | "localFile";
+
 export interface OpenVault {
-  slug: string;
+  /** Null for BYOS vaults without a public slug. */
+  slug: string | null;
   siteId: string;
+  storageKind: StorageKind;
+  /**
+   * Human-readable identifier shown in the editor chrome. For Firestore
+   * vaults this mirrors `slug`; for local-file vaults this is the file
+   * name the user picked. Always non-null so the UI never has to branch.
+   */
+  displayLabel: string;
   slotIndex: number;
   masterKey: Uint8Array;
   kdfSalt: Uint8Array;
@@ -125,7 +146,18 @@ export const useVault = create<VaultState>((set) => ({
     set((s) => (s.open ? { open: { ...s.open, version } } : s)),
   setDeadman: (deadman) =>
     set((s) => (s.open ? { open: { ...s.open, deadman } } : s)),
-  close: () => set({ open: null }),
+  close: () =>
+    set((s) => {
+      // Locking a BYOS vault: drop the per-site adapter override so a
+      // subsequent visit goes through the recall + re-prompt flow
+      // (including a fresh File System Access permission grant) rather
+      // than silently reusing the in-memory handle. Firestore vaults
+      // have no override to unregister; the call is a no-op.
+      if (s.open && s.open.storageKind !== "firestore") {
+        unregisterVaultStorageAdapter(s.open.siteId);
+      }
+      return { open: null };
+    }),
 }));
 
 /** Convenience selector: the currently active notebook. */

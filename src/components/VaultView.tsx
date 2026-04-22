@@ -99,6 +99,8 @@ export function VaultView({ slug }: { slug: string }) {
           setOpen({
             slug,
             siteId: res.siteId,
+            storageKind: "firestore",
+            displayLabel: slug,
             slotIndex: res.slotIndex,
             masterKey: res.masterKey,
             kdfSalt: res.kdfSalt,
@@ -211,6 +213,8 @@ function toVault(r: OpenResult, beneficiary: boolean) {
   return {
     slug: r.slug,
     siteId: r.siteId,
+    storageKind: r.storageKind,
+    displayLabel: r.displayLabel,
     slotIndex: r.slotIndex,
     masterKey: r.masterKey,
     kdfSalt: r.kdfSalt,

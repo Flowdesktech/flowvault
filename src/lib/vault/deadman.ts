@@ -38,10 +38,10 @@ import { utf8Decode } from "@/lib/utils/bytes";
 import {
   configureDeadman as fbConfigureDeadman,
   disableDeadman as fbDisableDeadman,
-  fetchSite,
   type DeadmanRecord,
   type SiteRecord,
 } from "@/lib/firebase/sites";
+import { getVaultStorage } from "@/lib/storage";
 import {
   openWithKey,
   type VolumeParams,
@@ -140,7 +140,7 @@ export async function unlockReleased(input: {
   siteId: string;
   beneficiaryPassword: string;
 }): Promise<BeneficiaryUnlockResult | BeneficiaryUnlockError> {
-  const site = await fetchSite(input.siteId);
+  const site = await getVaultStorage(input.siteId).read(input.siteId);
   if (!site) return { kind: "site-missing" };
   if (!site.deadman) return { kind: "no-deadman" };
   if (!site.deadman.released) return { kind: "not-released" };

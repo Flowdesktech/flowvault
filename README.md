@@ -259,4 +259,4 @@ If crypto is a non-starter for you, no pressure — these help just as much:
 
 ## License
 
-MIT (planned).
+MIT. See [`LICENSE`](./LICENSE) for the full text.

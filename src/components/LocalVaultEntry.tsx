@@ -22,7 +22,7 @@
  * that fire from user clicks, and the decrypted output is transferred
  * to the `/local/<id>` route via the `handoff` module.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { FolderOpen, HardDrive, Lock, Plus } from "lucide-react";
 import { Button } from "./ui/Button";
@@ -60,6 +60,26 @@ const FLOWVAULT_FILE_TYPE: FilePickerAcceptType = {
   accept: { "application/octet-stream": [".flowvault"] },
 };
 
+// Module-scoped helpers for `useSyncExternalStore`. They need stable
+// identities across renders (otherwise React resubscribes every time
+// and the snapshot comparison flags the component as unstable), so
+// hoisting them out of the component is required.
+function subscribeNoop(): () => void {
+  // File System Access API support is a static property of the
+  // current browser build — there's nothing to subscribe to. Returning
+  // a no-op unsubscribe satisfies the contract.
+  return () => {};
+}
+function getSupportedClientSnapshot(): boolean {
+  return isFileSystemAccessSupported();
+}
+function getSupportedServerSnapshot(): boolean {
+  // Assume "supported" on the server so the SSR HTML matches the
+  // most common case (Chromium-based browsers). React will reconcile
+  // with the real client value after hydration for Firefox/Safari.
+  return true;
+}
+
 type Modal =
   | { kind: "none" }
   | { kind: "create"; handle: FileSystemFileHandle }
@@ -75,21 +95,27 @@ export function LocalVaultEntry() {
   const [formErr, setFormErr] = useState<string | null>(null);
 
   // Feature detection has to happen on the client (the File System
-  // Access API is not available during SSR), but we can't branch on
-  // that in the first render without mismatching the server-rendered
-  // HTML. Keep the buttons as "supported" on the server and on the
-  // first client render, then refine in a mount effect. Chromium
-  // users see the final state on the first paint; Firefox/Safari
+  // Access API is not available during SSR), but branching on it
+  // directly during the first render would mismatch the
+  // server-rendered HTML. `useSyncExternalStore` is the hydration-safe
+  // primitive for exactly this: we report `true` as the server
+  // snapshot so SSR + first-client-render agree, then the client
+  // snapshot takes over post-hydration and reflects the real answer.
+  // Chromium users see the final state immediately; Firefox/Safari
   // users see a brief enabled flash before the buttons disable
-  // themselves, which is acceptable and matches standard React
-  // hydration-safe feature-detection patterns.
-  const [mounted, setMounted] = useState(false);
-  const [supportedAfterMount, setSupportedAfterMount] = useState(true);
-  useEffect(() => {
-    setMounted(true);
-    setSupportedAfterMount(isFileSystemAccessSupported());
-  }, []);
-  const supported = !mounted || supportedAfterMount;
+  // themselves, which we also annotate with a "not supported"
+  // paragraph once the real value is known.
+  const supportedAfterMount = useSyncExternalStore(
+    subscribeNoop,
+    getSupportedClientSnapshot,
+    getSupportedServerSnapshot,
+  );
+  // During SSR / hydration the server snapshot (`true`) is used, so
+  // the buttons render as enabled and the "not supported" paragraph
+  // stays hidden — matching the server HTML. Immediately after
+  // hydration, `useSyncExternalStore` switches to the client snapshot
+  // and components that care about the difference re-render.
+  const supported = supportedAfterMount;
 
   const reset = useCallback(() => {
     setPassword("");
@@ -229,7 +255,7 @@ export function LocalVaultEntry() {
           <FolderOpen size={14} /> Open local vault
         </Button>
       </div>
-      {mounted && !supportedAfterMount ? (
+      {!supportedAfterMount ? (
         <p className="mt-2 text-center text-[11px] text-muted">
           Local vaults need the File System Access API. Works in Chrome,
           Edge, Brave, Arc. Hosted vaults work everywhere.

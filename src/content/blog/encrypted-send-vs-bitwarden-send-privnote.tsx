@@ -10,7 +10,6 @@ import {
   Strong,
   Em,
   A,
-  Callout,
   Example,
 } from "@/components/blog/Prose";
 

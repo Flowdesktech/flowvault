@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "./ui/Button";
 import { useVault } from "@/lib/store/vault";
 import { saveVault } from "@/lib/vault/service";
@@ -28,8 +29,24 @@ import {
 import { AddPasswordModal } from "./AddPasswordModal";
 import { DeadmanModal } from "./DeadmanModal";
 import { ExportMenu } from "./ExportMenu";
+import { ViewModeToggle } from "./editor/ViewModeToggle";
+import { useEditorViewMode } from "@/lib/hooks/useEditorViewMode";
 import { deadmanExpiresAt } from "@/lib/vault/deadman";
 import { useNow } from "@/lib/utils/useNow";
+
+/**
+ * Markdown preview is lazy-loaded so the ~90 KB renderer bundle
+ * (react-markdown + remark-gfm + prism-react-renderer) stays out of
+ * the vault-open critical path. Users who never flip out of Edit
+ * mode never download it.
+ */
+const MarkdownPreview = dynamic(
+  () => import("./editor/MarkdownPreview"),
+  {
+    ssr: false,
+    loading: () => <PreviewLoading />,
+  },
+);
 
 type Status =
   | { kind: "idle" }
@@ -57,6 +74,7 @@ export function Editor() {
   const [deadmanOpen, setDeadmanOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const { mode, effectiveMode, setMode, canSplit } = useEditorViewMode();
   const dirtyRef = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /**
@@ -337,8 +355,12 @@ export function Editor() {
             : "This vault has been handed over to its beneficiary and is locked against further writes. To start fresh, create a new vault under a new URL."}
         </div>
       ) : null}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+      {/* Identity row: who/what is open + live session status on the
+          left, primary session ops (Save, Lock) on the right. This
+          row intentionally stays sparse so the URL/status is easy to
+          scan at a glance — it's the "title bar" of the editor. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <span
             className="rounded-md border border-border bg-background-elev px-2 py-1 font-mono text-xs text-muted"
             title={
@@ -356,36 +378,7 @@ export function Editor() {
             <DeadmanChip onClick={() => setDeadmanOpen(true)} />
           ) : null}
         </div>
-        <div className="flex items-center gap-2">
-          {!readOnly ? (
-            <>
-              {supportsDeadman ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setDeadmanOpen(true)}
-                  title="Set up a trusted handover: hand this vault over to a beneficiary if you stop checking in for a configurable interval"
-                >
-                  <Clock size={14} /> Handover
-                </Button>
-              ) : null}
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setAddPasswordOpen(true)}
-                title={
-                  open.storageKind === "localFile"
-                    ? "Register another password that opens a different notebook in this local file"
-                    : "Register another password that opens a different notebook on this URL"
-                }
-              >
-                <KeyRound size={14} /> Add password
-              </Button>
-            </>
-          ) : null}
-          {/* Export stays available in read-only (beneficiary / released)
-              views too so the holder can still archive or migrate. */}
-          <ExportMenu />
+        <div className="flex flex-wrap items-center gap-2">
           {!readOnly ? (
             <Button variant="secondary" size="sm" onClick={flushSaveNow}>
               <Save size={14} /> Save
@@ -395,6 +388,46 @@ export function Editor() {
             <LogOut size={14} /> Lock
           </Button>
         </div>
+      </div>
+
+      {/* Toolbar row: secondary actions on the left, display
+          preferences on the right. Separated from the identity row by
+          a hairline border so the eye reads "title bar / toolbar"
+          rather than one crowded strip. Export stays in read-only
+          mode so beneficiary / released views can still archive. */}
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-2 border-t border-border/40 pt-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {!readOnly && supportsDeadman ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setDeadmanOpen(true)}
+              title="Set up a trusted handover: hand this vault over to a beneficiary if you stop checking in for a configurable interval"
+            >
+              <Clock size={14} /> Handover
+            </Button>
+          ) : null}
+          {!readOnly ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setAddPasswordOpen(true)}
+              title={
+                open.storageKind === "localFile"
+                  ? "Register another password that opens a different notebook in this local file"
+                  : "Register another password that opens a different notebook on this URL"
+              }
+            >
+              <KeyRound size={14} /> Add password
+            </Button>
+          ) : null}
+          <ExportMenu />
+        </div>
+        <ViewModeToggle
+          mode={mode}
+          onChange={setMode}
+          canSplit={canSplit}
+        />
       </div>
 
       <TabBar
@@ -413,47 +446,30 @@ export function Editor() {
         }}
       />
 
-      {/* Relative wrapper so the sync indicator can sit in the corner
-          of the textarea without pushing layout around. */}
-      <div className="relative flex-1">
-        <textarea
-          key={activeNotebook.id}
-          value={activeNotebook.content}
-          onChange={(e) => {
-            if (readOnly) return;
-            updateActive(e.target.value);
-            scheduleDebouncedSave();
-          }}
-          onKeyDown={(e) => {
-            if (
-              !readOnly &&
-              (e.metaKey || e.ctrlKey) &&
-              e.key.toLowerCase() === "s"
-            ) {
-              e.preventDefault();
-              flushSaveNow();
-            }
-          }}
-          spellCheck={false}
-          readOnly={readOnly}
-          placeholder={
-            readOnly
-              ? ""
-              : "Start typing. Auto-saves to an encrypted slot every second or so."
-          }
-          className="h-[62vh] w-full resize-none rounded-b-xl rounded-tr-xl border-2 border-t-0 border-border bg-background-elev p-4 font-mono text-sm leading-relaxed text-foreground placeholder:text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
-        />
-        {isSaving ? (
-          <span
-            className="pointer-events-none absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-background-elev-2/95 px-2.5 py-1 text-[11px] text-muted shadow-sm backdrop-blur"
-            aria-live="polite"
-            aria-label="Syncing"
-            title="Encrypting and uploading this slot"
-          >
-            <Loader2 size={11} className="animate-spin" /> Syncing
-          </span>
-        ) : null}
-      </div>
+      {/* The editor body renders as one of three layouts depending on
+          `effectiveMode`. Edit and Preview each get the full height
+          and the full rounded-corner treatment; Split shares the
+          height between two panes that share the same outer border
+          so the seam reads as one editor surface, not two floating
+          panels.
+          The "Syncing" chip is anchored to whichever pane is acting
+          as the edit surface, so it never overlaps the preview. */}
+      <EditorBody
+        mode={effectiveMode}
+        isSaving={isSaving}
+        activeNotebookId={activeNotebook.id}
+        content={activeNotebook.content}
+        readOnly={readOnly}
+        onChange={(next) => {
+          if (readOnly) return;
+          updateActive(next);
+          scheduleDebouncedSave();
+        }}
+        onSaveShortcut={() => {
+          if (readOnly) return;
+          flushSaveNow();
+        }}
+      />
 
       <div className="mt-2 flex items-center justify-between text-xs text-muted">
         <span>
@@ -497,6 +513,158 @@ export function Editor() {
         onClose={() => setDeadmanOpen(false)}
       />
     </main>
+  );
+}
+
+interface EditorBodyProps {
+  mode: "edit" | "preview" | "split";
+  isSaving: boolean;
+  activeNotebookId: string;
+  content: string;
+  readOnly: boolean;
+  onChange: (next: string) => void;
+  onSaveShortcut: () => void;
+}
+
+function EditorBody({
+  mode,
+  isSaving,
+  activeNotebookId,
+  content,
+  readOnly,
+  onChange,
+  onSaveShortcut,
+}: EditorBodyProps) {
+  if (mode === "preview") {
+    return (
+      <PreviewPane
+        content={content}
+        shape="full"
+        showSyncingChip={isSaving}
+      />
+    );
+  }
+  if (mode === "split") {
+    return (
+      <div className="flex h-[62vh] flex-1 gap-0 rounded-b-xl rounded-tr-xl border-2 border-t-0 border-border bg-background-elev">
+        <div className="relative flex-1 min-w-0 border-r border-border/60">
+          <EditorTextarea
+            activeNotebookId={activeNotebookId}
+            content={content}
+            readOnly={readOnly}
+            onChange={onChange}
+            onSaveShortcut={onSaveShortcut}
+            shape="split-left"
+          />
+          {isSaving ? <SyncingChip /> : null}
+        </div>
+        <div className="flex-1 min-w-0">
+          <PreviewPane content={content} shape="split-right" />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="relative flex-1">
+      <EditorTextarea
+        activeNotebookId={activeNotebookId}
+        content={content}
+        readOnly={readOnly}
+        onChange={onChange}
+        onSaveShortcut={onSaveShortcut}
+        shape="full"
+      />
+      {isSaving ? <SyncingChip /> : null}
+    </div>
+  );
+}
+
+type PaneShape = "full" | "split-left" | "split-right";
+
+function EditorTextarea({
+  activeNotebookId,
+  content,
+  readOnly,
+  onChange,
+  onSaveShortcut,
+  shape,
+}: {
+  activeNotebookId: string;
+  content: string;
+  readOnly: boolean;
+  onChange: (next: string) => void;
+  onSaveShortcut: () => void;
+  shape: PaneShape;
+}) {
+  // In split mode the outer wrapper carries the border and rounding,
+  // so the textarea itself drops both. In "full" mode the textarea
+  // owns the chrome, matching the pre-Markdown look exactly.
+  const chrome =
+    shape === "full"
+      ? "h-[62vh] rounded-b-xl rounded-tr-xl border-2 border-t-0 border-border bg-background-elev focus:border-accent focus:ring-2 focus:ring-accent/30"
+      : "h-full border-0 bg-transparent focus:ring-0";
+  return (
+    <textarea
+      key={activeNotebookId}
+      value={content}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={(e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+          e.preventDefault();
+          onSaveShortcut();
+        }
+      }}
+      spellCheck={false}
+      readOnly={readOnly}
+      placeholder={
+        readOnly
+          ? ""
+          : "Start typing. Markdown is supported — tap the Preview toggle to render. Auto-saves to an encrypted slot every second or so."
+      }
+      className={`w-full resize-none p-4 font-mono text-sm leading-relaxed text-foreground placeholder:text-muted focus:outline-none ${chrome}`}
+    />
+  );
+}
+
+function PreviewPane({
+  content,
+  shape,
+  showSyncingChip = false,
+}: {
+  content: string;
+  shape: PaneShape;
+  showSyncingChip?: boolean;
+}) {
+  const chrome =
+    shape === "full"
+      ? "h-[62vh] rounded-b-xl rounded-tr-xl border-2 border-t-0 border-border bg-background-elev"
+      : "h-full bg-background-elev";
+  return (
+    <div className={`relative ${chrome}`}>
+      <MarkdownPreview source={content} />
+      {showSyncingChip ? <SyncingChip /> : null}
+    </div>
+  );
+}
+
+function SyncingChip() {
+  return (
+    <span
+      className="pointer-events-none absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-background-elev-2/95 px-2.5 py-1 text-[11px] text-muted shadow-sm backdrop-blur"
+      aria-live="polite"
+      aria-label="Syncing"
+      title="Encrypting and uploading this slot"
+    >
+      <Loader2 size={11} className="animate-spin" /> Syncing
+    </span>
+  );
+}
+
+function PreviewLoading() {
+  return (
+    <div className="flex h-full w-full items-center justify-center text-xs text-muted">
+      <Loader2 size={14} className="mr-2 animate-spin" /> Loading preview…
+    </div>
   );
 }
 

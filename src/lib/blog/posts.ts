@@ -8,6 +8,7 @@ import EncryptedSendVs from "@/content/blog/encrypted-send-vs-bitwarden-send-pri
 import FvaultFormat from "@/content/blog/encrypted-backup-fvault-format";
 import FlowvaultVsProtectedText from "@/content/blog/flowvault-vs-protectedtext";
 import BringYourOwnStorage from "@/content/blog/bring-your-own-storage-local-vaults";
+import MarkdownPreviewCodeHighlighting from "@/content/blog/markdown-preview-code-highlighting";
 
 /**
  * Public blog index. Every post is a TSX component (lives under
@@ -274,6 +275,35 @@ const POSTS_UNSORTED: BlogPost[] = [
     ],
     readMinutes: 12,
     Body: BringYourOwnStorage,
+  },
+  {
+    slug: "markdown-preview-code-highlighting",
+    title:
+      "Markdown preview and syntax-highlighted code, without the usual leaks",
+    subtitle:
+      "Why Flowvault's v1.3 renderer blocks raw HTML, gates external images behind a click, strips referrers, and highlights code entirely offline.",
+    description:
+      "How Flowvault's new Markdown preview works and why it's locked down: GitHub-flavored Markdown via react-markdown + remark-gfm, Prism syntax highlighting running locally, blocked raw HTML (no <script>, no <iframe>), click-to-load external images to prevent silent tracking pixels, no-referrer external links, lazy-loaded renderer bundle, and an Edit / Preview / Split toggle persisted in localStorage.",
+    excerpt:
+      "Flowvault 1.3 renders your notes as GitHub-flavored Markdown with syntax-highlighted code blocks and an Edit / Preview / Split toggle. What's unusual is what the preview refuses to do: no raw HTML, no silent external-image loads, no referrer leaks, no remote syntax-highlighting fetch. Here's exactly what we shipped and why.",
+    publishedAt: "2026-04-22",
+    tags: ["feature", "security"],
+    keywords: [
+      "markdown preview encrypted notes",
+      "GitHub flavored markdown notepad",
+      "encrypted notepad code highlighting",
+      "zero knowledge markdown editor",
+      "markdown notes without external images",
+      "no-referrer markdown preview",
+      "prism syntax highlighting encrypted notes",
+      "safe markdown renderer",
+      "markdown editor split view",
+      "react-markdown security",
+      "remark-gfm task lists",
+      "flowvault v1.3",
+    ],
+    readMinutes: 10,
+    Body: MarkdownPreviewCodeHighlighting,
   },
 ];
 

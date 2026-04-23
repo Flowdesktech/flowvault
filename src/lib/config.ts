@@ -23,10 +23,10 @@ function envOr(value: string | undefined, fallback: string): string {
 /** Canonical app origin (used for OG metadata, sitemap, share URLs). */
 export const APP_URL = envOr(
   process.env.NEXT_PUBLIC_APP_URL,
-  "https://flowvault.flowdesk.tech",
+  "https://useflowvault.com",
 );
 
-/** Hostname shown in the slug picker, e.g. "flowvault.flowdesk.tech/s/...". */
+/** Hostname shown in the slug picker, e.g. "useflowvault.com/s/...". */
 export const APP_HOST = APP_URL.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
 export const GITHUB_URL = envOr(

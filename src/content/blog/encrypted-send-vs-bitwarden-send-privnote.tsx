@@ -73,7 +73,7 @@ export default function Post() {
         <Li>
           The URL is{" "}
           <Code>
-            flowvault.flowdesk.tech/send/&lt;id&gt;#k=&lt;base64url-key&gt;
+            useflowvault.com/send/&lt;id&gt;#k=&lt;base64url-key&gt;
           </Code>
           . The key lives after the <Code>#</Code>, so it never
           reaches Flowvault&apos;s server in any HTTP request.

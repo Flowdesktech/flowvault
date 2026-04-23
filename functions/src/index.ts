@@ -137,6 +137,8 @@ function toBase64(value: unknown): string | null {
 }
 
 const CALLABLE_CORS: (string | RegExp)[] = [
+  "https://useflowvault.com",
+  "https://www.useflowvault.com",
   "https://flowvault.flowdesk.tech",
   "https://flowvault-cf9f2.web.app",
   "https://flowvault-cf9f2.firebaseapp.com",

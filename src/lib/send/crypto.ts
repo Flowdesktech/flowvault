@@ -22,7 +22,7 @@
  *
  * The URL the sender copies looks like:
  *
- *   https://flowvault.flowdesk.tech/send/&lt;id&gt;#k=&lt;base64url-key&gt;
+ *   https://useflowvault.com/send/&lt;id&gt;#k=&lt;base64url-key&gt;
  */
 import { aeadDecrypt, aeadEncrypt } from "@/lib/crypto/aead";
 import {

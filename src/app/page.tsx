@@ -594,7 +594,7 @@ export default function HomePage() {
               tagline="Zero-knowledge encrypted notepad"
               body="The app you're reading. Argon2id + AES‑256‑GCM, hidden‑volume plausible deniability, drand‑backed time‑locked notes, dead‑man's switch to a beneficiary, Bring‑Your‑Own‑Storage local vaults, and self‑destructing Encrypted Send. Frontend, Cloud Functions, and Firestore rules — open source end‑to‑end."
               href={APP_URL}
-              linkLabel="flowvault.flowdesk.tech"
+              linkLabel="useflowvault.com"
               tags={["Next.js", "Firebase", "Cryptography", "Zero-knowledge"]}
             />
             <CaseStudy

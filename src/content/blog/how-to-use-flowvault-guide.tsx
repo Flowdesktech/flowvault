@@ -31,7 +31,7 @@ export default function Post() {
       <P>
         Go to{" "}
         <A href="/">
-          <Code>flowvault.flowdesk.tech</Code>
+          <Code>useflowvault.com</Code>
         </A>
         . You&apos;ll see a single input box that expects a URL slug
         &mdash; something like <Code>my-notes</Code> or{" "}
@@ -58,7 +58,7 @@ export default function Post() {
       </Callout>
       <P>
         The slug you picked becomes a permanent URL (e.g.{" "}
-        <Code>flowvault.flowdesk.tech/s/my-notes</Code>). Bookmark it,
+        <Code>useflowvault.com/s/my-notes</Code>). Bookmark it,
         or just remember it &mdash; the point of the slug-plus-password
         design is that a bookmark isn&apos;t required.
       </P>
@@ -248,7 +248,7 @@ export default function Post() {
         <Li>
           Click <Code>Create link</Code>. You get a URL that looks
           like{" "}
-          <Code>flowvault.flowdesk.tech/send/&lt;id&gt;#k=&lt;key&gt;</Code>
+          <Code>useflowvault.com/send/&lt;id&gt;#k=&lt;key&gt;</Code>
           . The <Code>#k=...</Code> fragment is the AES-256 key; your
           browser never sends it to the server.
         </Li>
@@ -299,7 +299,7 @@ export default function Post() {
         </Li>
         <Li>
           Click <Code>Create time-lock</Code> and share the resulting{" "}
-          <Code>flowvault.flowdesk.tech/t/&lt;id&gt;</Code> link.
+          <Code>useflowvault.com/t/&lt;id&gt;</Code> link.
           Opening it before the unlock moment shows a countdown; after,
           the reader&apos;s browser grabs the drand round signature
           and decrypts locally.

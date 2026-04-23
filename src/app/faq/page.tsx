@@ -93,7 +93,7 @@ const ABOUT: QA[] = [
     a: (
       <>
         Flowvault is an encrypted notepad. You pick a URL like{" "}
-        <Code>flowvault.flowdesk.tech/s/my-notes</Code>, set a password, and
+        <Code>useflowvault.com/s/my-notes</Code>, set a password, and
         write. Your
         notes are encrypted in your browser before they reach our server, so
         we only ever see an opaque ciphertext blob.
@@ -674,7 +674,7 @@ const FEATURES: QA[] = [
         </ol>
         <p className="mt-3">
           We hand you back a share link like{" "}
-          <Strong>flowvault.flowdesk.tech/t/xyz</Strong>. Visit it any
+          <Strong>useflowvault.com/t/xyz</Strong>. Visit it any
           time: before the unlock moment you see a countdown, after it
           your browser grabs the drand round signature and decrypts
           locally. Flowvault cannot unlock it early &mdash; the key
@@ -1162,14 +1162,14 @@ const BYOS: QA[] = [
         <ul className="mt-2 list-disc space-y-1 pl-5">
           <li>
             <Strong>Hosted vault</Strong>:{" "}
-            <Code>flowvault.flowdesk.tech/s/&lt;slug&gt;</Code>. The
+            <Code>useflowvault.com/s/&lt;slug&gt;</Code>. The
             ciphertext is stored in our Firestore. Shareable URL.
             Works from any device. Trusted handover and all
             server-dependent features work.
           </li>
           <li>
             <Strong>Local vault</Strong>:{" "}
-            <Code>flowvault.flowdesk.tech/local/&lt;uuid&gt;</Code>.
+            <Code>useflowvault.com/local/&lt;uuid&gt;</Code>.
             The ciphertext is a <Code>.flowvault</Code> file on your
             disk. Only openable on a device that has the file. The
             URL on its own is useless without the file. Trusted

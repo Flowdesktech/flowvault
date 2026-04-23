@@ -416,7 +416,7 @@ Licensed                            MIT                  (unstated)`}</pre>
       <P>
         If you&apos;re weighing them, the best test is to open both
         and use them for a week. Flowvault URLs are free. Try it at{" "}
-        <A href="/">flowvault.flowdesk.tech</A>, write some notes,
+        <A href="/">useflowvault.com</A>, write some notes,
         add a decoy password, download a backup, and decide from
         experience rather than a spec sheet.
       </P>
@@ -450,7 +450,7 @@ Licensed                            MIT                  (unstated)`}</pre>
           server actually sees.
         </Li>
         <Li>
-          <A href="/">flowvault.flowdesk.tech</A> &mdash; try it.
+          <A href="/">useflowvault.com</A> &mdash; try it.
         </Li>
       </Ul>
     </>

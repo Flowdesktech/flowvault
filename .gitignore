@@ -57,3 +57,6 @@ serviceAccountKey.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# private / working-doc drafts (outreach, pricing, unpublished writing)
+/private-docs/

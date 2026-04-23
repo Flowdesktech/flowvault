@@ -94,7 +94,7 @@ export default function Post() {
         </Li>
         <Li>
           You land on a URL that looks like{" "}
-          <Code>flowvault.flowdesk.tech/local/&lt;uuid&gt;</Code>. The
+          <Code>useflowvault.com/local/&lt;uuid&gt;</Code>. The
           UUID is generated in your browser; it&apos;s an opaque
           identifier the editor uses to look up your file handle.{" "}
           <Em>The UUID never leaves your browser</Em> &mdash; the
@@ -314,7 +314,7 @@ offset 8 + N  : raw ciphertext (fixed size, e.g. 512 KiB)`}</pre>
         <Li>
           They&apos;re{" "}
           <Strong>origin-scoped and not portable</Strong>: a handle
-          created on <Code>flowvault.flowdesk.tech</Code> is opaque
+          created on <Code>useflowvault.com</Code> is opaque
           to any other origin, and can&apos;t be serialised into a
           cookie or <Code>localStorage</Code>.
         </Li>
@@ -604,7 +604,7 @@ offset 8 + N  : raw ciphertext (fixed size, e.g. 512 KiB)`}</pre>
         Delete the file from your disk. That&apos;s the whole state.
         If you also want to clear the per-browser handle registry,
         use your browser&apos;s site-data settings for{" "}
-        <Code>flowvault.flowdesk.tech</Code>.
+        <Code>useflowvault.com</Code>.
       </P>
 
       <H2 id="see-also">See also</H2>

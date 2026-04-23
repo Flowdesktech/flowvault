@@ -30,7 +30,7 @@ function safeMetadataBase(): URL {
   try {
     return new URL(APP_URL);
   } catch {
-    return new URL("https://flowvault.flowdesk.tech");
+    return new URL("https://useflowvault.com");
   }
 }
 

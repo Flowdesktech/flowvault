@@ -116,7 +116,7 @@ export default function OG() {
           }}
         >
           <span style={{ color: "#8b5cf6" }}>●</span>
-          <span>flowvault.flowdesk.tech</span>
+          <span>useflowvault.com</span>
         </div>
       </div>
     ),

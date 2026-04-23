@@ -164,7 +164,7 @@ export default function Post() {
       <H2 id="read-path">The read path</H2>
       <P>
         When someone opens the share link{" "}
-        <Code>flowvault.flowdesk.tech/t/&lt;id&gt;</Code>:
+        <Code>useflowvault.com/t/&lt;id&gt;</Code>:
       </P>
       <Ul>
         <Li>

@@ -23,9 +23,15 @@ Firebase Functions, and client-side Argon2id (64 MiB / 3 iter) +
 AES-256-GCM. No account, no email, no phone number &mdash; a URL slug
 and a password is the whole identity system.
 
-> **Available for hire** &mdash; privacy-first apps, contract engineering,
-> and zero-knowledge UX work. Reach me at
-> **[contact@flowdesk.tech](mailto:contact@flowdesk.tech)**.
+> **Available for hire** &mdash; Flowvault is built by
+> **[Flowdesk](https://flowdesk.tech)**, a small studio shipping
+> privacy-first web apps, end-to-end encrypted systems, crypto/web3
+> products, and native & hybrid mobile apps. Led by a senior engineer
+> with **4 years shipping production cryptography at
+> [FlowCrypt](https://flowcrypt.com)** (OpenPGP email &mdash; iOS + Chrome
+> Extension, 2022&ndash;2026). Limited engagements per quarter &mdash;
+> reach out at
+> **[contact@flowdesk.tech](mailto:contact@flowdesk.tech?subject=Flowdesk%20%E2%80%94%20project%20inquiry%20(via%20Flowvault))**.
 
 ---
 

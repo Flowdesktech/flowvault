@@ -23,6 +23,10 @@ import {
   Notebook,
   Download,
   HardDrive,
+  Briefcase,
+  Database,
+  Mail,
+  ArrowRight,
 } from "lucide-react";
 
 /**
@@ -557,6 +561,110 @@ export default function HomePage() {
         </section>
 
         {/* ---------------------------------------------------------------- */}
+        {/*
+          Hire-us section. Placed after the three comparison blocks and
+          before the donation block so that readers who have just
+          finished proofing Flowvault's technical depth land on a clear
+          commercial CTA before they're asked for money. Every Flowvault
+          user is a potential buyer: this is the conversion surface.
+        */}
+        <section id="hire" className="mt-24 scroll-mt-24">
+          <div className="mx-auto max-w-3xl text-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-medium uppercase tracking-wider text-accent">
+              <Briefcase size={12} /> Available for hire
+            </span>
+            <h2 className="mt-5 text-3xl font-semibold tracking-tight">
+              Need something like this, built right?
+            </h2>
+            <p className="mt-4 text-muted">
+              Flowvault is built by <strong className="text-foreground">Flowdesk</strong>,
+              a small studio that ships <strong className="text-foreground">privacy‑first web apps, end‑to‑end encrypted systems, crypto/web3 products,
+              and native &amp; hybrid mobile apps</strong> — the kind of engineering
+              where getting the details wrong is the whole story. If you
+              want a product where &ldquo;the server can&apos;t read your data&rdquo;
+              is a real claim and not a marketing line, we should talk.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-5 lg:grid-cols-3">
+            <CaseStudy
+              icon={<ShieldCheck size={18} />}
+              badge="Flowdesk product"
+              title="Flowvault"
+              tagline="Zero-knowledge encrypted notepad"
+              body="The app you're reading. Argon2id + AES‑256‑GCM, hidden‑volume plausible deniability, drand‑backed time‑locked notes, dead‑man's switch to a beneficiary, Bring‑Your‑Own‑Storage local vaults, and self‑destructing Encrypted Send. Frontend, Cloud Functions, and Firestore rules — open source end‑to‑end."
+              href={APP_URL}
+              linkLabel="flowvault.flowdesk.tech"
+              tags={["Next.js", "Firebase", "Cryptography", "Zero-knowledge"]}
+            />
+            <CaseStudy
+              icon={<Database size={18} />}
+              badge="Flowdesk product"
+              title="Firestudio"
+              tagline="Open-source Firebase Firestore GUI"
+              body="A desktop GUI client for Firebase Firestore — browse, query, and edit collections visually without the console round‑trips. Same Firebase depth that powers Flowvault's zero‑knowledge storage layer, packaged as a developer tool. TypeScript + Electron, MIT‑licensed, ships on Windows, macOS, and Linux."
+              href="https://github.com/Flowdesktech/firestudio"
+              linkLabel="github.com/Flowdesktech/firestudio"
+              tags={["TypeScript", "Electron", "Firebase", "Open source"]}
+            />
+            <CaseStudy
+              icon={<Lock size={18} />}
+              badge="Team experience"
+              title="FlowCrypt"
+              tagline="End-to-end encrypted email (OpenPGP)"
+              role="Senior iOS & Chrome Extension Engineer · 2022–2026"
+              body="Four years shipping production cryptography at FlowCrypt, a PGP‑for‑email product used by privacy‑sensitive teams and regulated industries. Owned the iOS app and the Chrome / browser extension end to end — OpenPGP key generation and storage, passphrase‑protected keychains, Gmail / IMAP integration, and the crypto flows users actually touch every day — plus review and QA on the Android codebase. Same engineering bar Flowvault is held to, on a much larger install base."
+              href="https://flowcrypt.com"
+              linkLabel="flowcrypt.com"
+              tags={["iOS · Swift", "Chrome Extension", "OpenPGP", "E2EE"]}
+            />
+          </div>
+
+          <div className="mt-10 overflow-hidden rounded-2xl border border-accent/25 bg-gradient-to-br from-accent/10 via-background-elev to-background-elev p-8">
+            <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
+              <div>
+                <h3 className="text-xl font-semibold tracking-tight text-foreground">
+                  Have a privacy, crypto, or mobile project?
+                </h3>
+                <p className="mt-3 text-sm leading-relaxed text-muted">
+                  We take a limited number of client engagements each
+                  quarter. Typical work: end‑to‑end encrypted products,
+                  crypto wallets and web3 frontends, native and hybrid
+                  mobile apps (Swift, Kotlin, React Native, Flutter),
+                  AI orchestration &amp; agent systems, and the
+                  Firebase / Next.js / Cloud Functions stack that
+                  Flowvault itself runs on. Remote, worldwide,
+                  async‑friendly.
+                </p>
+                <p className="mt-3 text-xs text-muted">
+                  Typical engagement: 2&ndash;12 weeks, from discovery
+                  through production release and handover.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 md:items-end">
+                <a
+                  href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(
+                    "Flowdesk — project inquiry (via Flowvault)",
+                  )}`}
+                  className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground transition hover:brightness-110"
+                >
+                  <Mail size={16} /> Email {CONTACT_EMAIL}
+                </a>
+                <a
+                  href="https://flowdesk.tech"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-accent hover:underline"
+                >
+                  flowdesk.tech <ArrowRight size={14} />
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ---------------------------------------------------------------- */}
         <section className="mt-20 overflow-hidden rounded-2xl border border-accent/25 bg-gradient-to-br from-accent/10 via-background-elev to-background-elev p-8">
           <div className="flex items-start gap-4">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent/15 text-accent">
@@ -721,6 +829,87 @@ function Feature({
           {ctaLabel ?? "Open"} &rarr;
         </Link>
       ) : null}
+    </div>
+  );
+}
+
+function CaseStudy({
+  icon,
+  badge,
+  title,
+  tagline,
+  role,
+  body,
+  href,
+  linkLabel,
+  tags,
+}: {
+  icon: React.ReactNode;
+  badge?: string;
+  title: string;
+  tagline: string;
+  role?: string;
+  body: string;
+  href: string;
+  linkLabel: string;
+  tags: string[];
+}) {
+  const isExternal = /^https?:\/\//.test(href);
+  return (
+    <div className="flex flex-col rounded-xl border border-border bg-background-elev p-6 transition hover:border-accent/40">
+      {badge ? (
+        <span className="mb-4 inline-flex w-fit items-center rounded-full border border-border/80 bg-background-elev-2 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted">
+          {badge}
+        </span>
+      ) : null}
+      <div className="flex items-center gap-3">
+        <span className="grid h-9 w-9 place-items-center rounded-md bg-accent/15 text-accent">
+          {icon}
+        </span>
+        <div>
+          <h3 className="text-base font-semibold text-foreground">{title}</h3>
+          <p className="text-xs text-muted">{tagline}</p>
+        </div>
+      </div>
+      {role ? (
+        <p className="mt-3 text-[11px] font-medium uppercase tracking-wider text-accent">
+          {role}
+        </p>
+      ) : null}
+      <p className="mt-4 flex-1 text-sm leading-relaxed text-muted">{body}</p>
+      <div className="mt-4 flex flex-wrap gap-1.5">
+        {tags.map((t) => (
+          <span
+            key={t}
+            className="rounded-full border border-border/80 bg-background-elev-2 px-2 py-0.5 text-[11px] text-muted"
+          >
+            {t}
+          </span>
+        ))}
+      </div>
+      {href && href !== "#" ? (
+        isExternal ? (
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 inline-flex items-center gap-1 text-sm text-accent hover:underline"
+          >
+            {linkLabel} <ArrowRight size={14} />
+          </a>
+        ) : (
+          <Link
+            href={href}
+            className="mt-4 inline-flex items-center gap-1 text-sm text-accent hover:underline"
+          >
+            {linkLabel} <ArrowRight size={14} />
+          </Link>
+        )
+      ) : (
+        <span className="mt-4 inline-flex items-center gap-1 text-sm text-muted">
+          {linkLabel}
+        </span>
+      )}
     </div>
   );
 }

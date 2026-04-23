@@ -73,17 +73,34 @@ export function Navbar() {
   );
 }
 
+/**
+ * Thin site-wide banner above the main header. Appears on every page
+ * (not just the homepage), so traffic from /send, /timelock, /blog,
+ * etc. also gets a hire signal. Leads with the FlowCrypt credential
+ * because it's the strongest trust anchor for the exact buyer segment
+ * this page is trying to attract (privacy / E2EE / crypto).
+ */
 function HireBanner() {
   return (
     <div className="border-b border-border/60 bg-background-elev/80 text-[11px] sm:text-xs">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-1.5 px-4 py-1.5 text-muted">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-1.5 text-muted">
         <Briefcase size={12} className="text-accent" />
         <span>
-          Available for hire &mdash; privacy-first apps, engineering, and
-          business-idea work.
+          Built by <strong className="text-foreground">Flowdesk</strong>{" "}
+          &mdash; ex‑FlowCrypt (iOS + Chrome Ext.). Privacy apps, E2EE
+          systems, native &amp; mobile.
         </span>
+        <Link
+          href="/#hire"
+          className="font-medium text-foreground underline-offset-4 hover:underline"
+        >
+          See work
+        </Link>
+        <span aria-hidden className="text-muted/60">·</span>
         <a
-          href={`mailto:${CONTACT_EMAIL}?subject=Flowdesk%20hire%20inquiry`}
+          href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(
+            "Flowdesk — project inquiry (via Flowvault)",
+          )}`}
           className="font-medium text-foreground underline-offset-4 hover:underline"
         >
           {CONTACT_EMAIL}

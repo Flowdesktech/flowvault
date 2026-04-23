@@ -273,3 +273,9 @@ If crypto is a non-starter for you, no pressure — these help just as much:
 ## License
 
 MIT. See [`LICENSE`](./LICENSE) for the full text.
+
+---
+
+<p align="center">
+  <a href="https://www.shipit.buzz/products/flowvault?ref=badge" target="_blank" rel="noopener noreferrer"><img src="https://www.shipit.buzz/api/products/flowvault/badge?theme=dark" alt="Featured on Shipit" /></a>
+</p>

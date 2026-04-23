@@ -788,6 +788,23 @@ export default function HomePage() {
             <Heart size={12} /> Donate
           </Link>
         </div>
+        <div className="mt-4 flex justify-center">
+          <a
+            href="https://www.shipit.buzz/products/flowvault?ref=badge"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Featured on Shipit"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://www.shipit.buzz/api/products/flowvault/badge?theme=dark"
+              alt="Featured on Shipit"
+              width={200}
+              height={40}
+              loading="lazy"
+            />
+          </a>
+        </div>
       </footer>
       <script
         type="application/ld+json"

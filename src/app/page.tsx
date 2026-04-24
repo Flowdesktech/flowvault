@@ -2,6 +2,10 @@ import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { OpenVaultForm } from "@/components/OpenVaultForm";
 import { LocalVaultEntry } from "@/components/LocalVaultEntry";
+import {
+  IntroVideoButton,
+  IntroVideoModal,
+} from "@/components/IntroVideoModal";
 import { APP_URL, CONTACT_EMAIL, DONATE_PATH, GITHUB_URL } from "@/lib/config";
 import {
   ShieldCheck,
@@ -91,6 +95,7 @@ export default function HomePage() {
   return (
     <>
       <Navbar />
+      <IntroVideoModal />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-16">
         <section className="mx-auto max-w-2xl text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background-elev px-3 py-1 text-xs text-muted">
@@ -117,6 +122,10 @@ export default function HomePage() {
             No account. No email. Your password is your only key &mdash; we
             never see it.
           </p>
+
+          <div className="mt-5 flex justify-center">
+            <IntroVideoButton variant="pill" />
+          </div>
 
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] uppercase tracking-wider text-muted">
             <span>1 URL</span>

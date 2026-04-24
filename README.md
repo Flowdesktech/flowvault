@@ -9,11 +9,13 @@ ever forced to; your real notebook stays invisible.
 
 > **1 URL · up to 64 notebooks · 512 KiB total · Argon2id + AES-256-GCM · no account · open source end-to-end**
 
-**[Try it](https://useflowvault.com)** · **[Blog](https://useflowvault.com/blog)** · **[Security](https://useflowvault.com/security)** · **[Self-host](#setup)** · **[Donate](https://useflowvault.com/donate)**
+**[Try it](https://useflowvault.com)** · **[30s intro (video)](https://youtu.be/wkoAIseRicY)** · **[Blog](https://useflowvault.com/blog)** · **[Security](https://useflowvault.com/security)** · **[Self-host](#setup)** · **[Donate](https://useflowvault.com/donate)**
 
 ## See it in 30 seconds — live demo, no sign-up
 
-There's a public demo vault at **[useflowvault.com/s/demo](https://useflowvault.com/s/demo)** with two pre-loaded notebooks behind two different passwords, so you can see the hidden-volume design work before picking a password of your own:
+Prefer a video walkthrough? A 30-second intro covering plausible deniability, time-locked notes, trusted handover, and Encrypted Send is on YouTube: **[youtu.be/wkoAIseRicY](https://youtu.be/wkoAIseRicY)**.
+
+There's also a public demo vault at **[useflowvault.com/s/demo](https://useflowvault.com/s/demo)** with two pre-loaded notebooks behind two different passwords, so you can see the hidden-volume design work before picking a password of your own:
 
 | Password | What opens |
 | --- | --- |

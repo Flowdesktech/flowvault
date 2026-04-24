@@ -5,9 +5,9 @@ import Link from "next/link";
 import { DONATE_PATH, APP_URL } from "@/lib/config";
 
 const FAQ_TITLE =
-  "FAQ — Flowvault: encrypted online notepad, Markdown preview, Bring-Your-Own-Storage local vaults, trusted handover to a beneficiary, time-locked notes, Encrypted Send, encrypted backup & restore; ProtectedText / Standard Notes / CryptPad / Privnote / Bitwarden Send alternative";
+  "FAQ — Flowvault: encrypted online notepad, Cmd+K in-memory search, Markdown preview, Bring-Your-Own-Storage local vaults, trusted handover to a beneficiary, time-locked notes, Encrypted Send, encrypted backup & restore; ProtectedText / Standard Notes / CryptPad / Privnote / Bitwarden Send alternative";
 const FAQ_DESCRIPTION =
-  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how the new Markdown preview renders GitHub-flavored Markdown safely (HTML blocked, external images click-to-load, no-referrer links, syntax-highlighted code), how Bring-Your-Own-Storage local vaults keep the entire ciphertext on your own disk as a single .flowvault file, how the trusted handover releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, how Encrypted Send creates self-destructing one-time links with view caps and optional passwords, how zero-knowledge .fvault backup and restore let you migrate or self-host without decrypting anything server-side, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, OneTimeSecret, PrivateBin, Yopass, Notesnook, Joplin, Obsidian, Bitwarden Send, 1Password Share, and Skiff Notes.";
+  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how the Cmd+K command-palette search runs entirely in memory over the notebooks you've already unlocked (no persistent index, no server round-trip, deniability preserved), how the Markdown preview renders GitHub-flavored Markdown safely (HTML blocked, external images click-to-load, no-referrer links, syntax-highlighted code), how Bring-Your-Own-Storage local vaults keep the entire ciphertext on your own disk as a single .flowvault file, how the trusted handover releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, how Encrypted Send creates self-destructing one-time links with view caps and optional passwords, how zero-knowledge .fvault backup and restore let you migrate or self-host without decrypting anything server-side, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, OneTimeSecret, PrivateBin, Yopass, Notesnook, Joplin, Obsidian, Bitwarden Send, 1Password Share, and Skiff Notes.";
 
 export const metadata: Metadata = {
   title: FAQ_TITLE,
@@ -67,6 +67,13 @@ export const metadata: Metadata = {
     "markdown notes without external images",
     "no-referrer markdown preview",
     "prism syntax highlighting encrypted notes",
+    "cmd+k search encrypted notes",
+    "command palette encrypted notepad",
+    "search zero knowledge notes",
+    "in-memory search encrypted notes",
+    "client-side search encrypted notepad",
+    "search without server index",
+    "deniable notes search",
   ],
   alternates: { canonical: "/faq" },
   openGraph: {
@@ -537,6 +544,145 @@ const USAGE: QA[] = [
         catch: Flowvault refuses to register a new password whose slot would
         overwrite the notebook you currently have open. If collisions matter
         for your threat model, just pick a different password and try again.
+      </>
+    ),
+  },
+];
+
+const SEARCH: QA[] = [
+  {
+    q: "Is there a search feature?",
+    a: (
+      <>
+        Yes. Press <Code>Ctrl</Code>/<Code>Cmd</Code> + <Code>K</Code>{" "}
+        inside the editor (or click the <Strong>Search</Strong>{" "}
+        button in the toolbar) to open a command palette. It does a
+        case-insensitive substring match across the titles{" "}
+        <em>and</em> contents of every tab in the slot you currently
+        have unlocked, grouped per notebook, with line numbers and
+        match highlighting. <Code>↑ ↓</Code> navigates,{" "}
+        <Code>Home</Code>/<Code>End</Code> jump to the first/last
+        hit, <Code>Enter</Code> opens the match, <Code>Esc</Code>{" "}
+        closes.
+      </>
+    ),
+  },
+  {
+    q: "Does search send anything to your server or build an index somewhere?",
+    a: (
+      <>
+        No. The search runs entirely in your browser, against the
+        plaintext that&apos;s already in memory because you unlocked
+        the slot. There is no persistent index, no{" "}
+        <Code>IndexedDB</Code> store, no{" "}
+        <Code>localStorage</Code> cache, and no network round-trip
+        to our backend. The corpus is small by design (at most 64
+        slots × a few KiB per slot in the default configuration),
+        so the scan is fast enough to run on every keystroke
+        without debouncing. Locking the vault drops the in-memory
+        bundle and drops the search surface with it &mdash;
+        there&apos;s literally nothing left to query once you log
+        out.
+      </>
+    ),
+  },
+  {
+    q: "Can search see my hidden / decoy notebooks?",
+    a: (
+      <>
+        Only the ones you&apos;ve unlocked in the current browser
+        session. Flowvault&apos;s plausible-deniability design
+        means the other slots are not decrypted into memory at
+        all &mdash; they&apos;re still opaque bytes in the vault
+        blob &mdash; so the search palette is{" "}
+        <em>physically incapable</em> of traversing them. A match
+        that exists under a different password would require you
+        to enter that password first. This is the same invariant
+        that keeps a decoy password&apos;s notebooks invisible
+        from your primary session; search inherits it for free.
+      </>
+    ),
+  },
+  {
+    q: "Can someone with my decoy password search my real notebooks?",
+    a: (
+      <>
+        No. The decoy password unlocks its own, independent slot
+        &mdash; that&apos;s all that gets decrypted into memory
+        when a decoy session runs. Your real notebook&apos;s
+        plaintext never enters that session&apos;s bundle, so the
+        Cmd+K palette has nothing to find there. From a
+        coercion-resistance standpoint, search doesn&apos;t widen
+        the attack surface any more than the editor itself does.
+      </>
+    ),
+  },
+  {
+    q: "Does search work with the Markdown preview / split view?",
+    a: (
+      <>
+        Yes. If you pick a content match while you&apos;re in pure
+        Preview mode (no textarea visible), the editor flips to
+        Edit automatically so the selection has somewhere to land;
+        Split stays Split. Either way, selecting a hit switches
+        to the right notebook tab and selects the match range
+        directly in the textarea, so the browser scrolls it into
+        view for you. Title-only hits just switch to the matching
+        notebook without touching the caret.
+      </>
+    ),
+  },
+  {
+    q: "Why is there a per-notebook cap on results?",
+    a: (
+      <>
+        To keep the palette readable. A single notebook that
+        contains a common word (&ldquo;the,&rdquo;
+        &ldquo;note,&rdquo; etc.) could otherwise fill the entire
+        results list and push every other notebook&apos;s
+        matches off the screen. The cap is 20 hits per notebook
+        and 100 hits total &mdash; more than enough for real
+        queries, and if you&apos;re hitting the ceiling it&apos;s
+        usually a sign to type a more specific query rather than
+        scroll further.
+      </>
+    ),
+  },
+  {
+    q: "Do other zero-knowledge notepads have search that doesn't leak metadata?",
+    a: (
+      <>
+        The field is mixed, and it&apos;s the area where
+        &ldquo;E2EE&rdquo; marketing most often leaks. A few
+        concrete reference points:
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>
+            <Strong>ProtectedText</Strong>: no search. One
+            password opens one blob and you scroll.
+          </li>
+          <li>
+            <Strong>Standard Notes</Strong>,{" "}
+            <Strong>Notesnook</Strong>: encrypted search, but it
+            relies on a client-side index that&apos;s built and
+            persisted locally (so a search surface outlives the
+            session), and it&apos;s tied to an account.
+          </li>
+          <li>
+            <Strong>Obsidian</Strong>, <Strong>Joplin</Strong>:
+            local-first with excellent search &mdash; but over
+            files on disk, not a deniable, server-hosted blob.
+          </li>
+        </ul>
+        <p className="mt-3">
+          Flowvault&apos;s choice is deliberately minimal: the
+          search &ldquo;index&rdquo; is just the plaintext of
+          the slot you&apos;re already viewing, and nothing is
+          written anywhere for it. You trade the ability to
+          query locked slots for a property that&apos;s hard to
+          match &mdash; search that can&apos;t survive a lock,
+          can&apos;t be subpoenaed, and can&apos;t be
+          exfiltrated as an index later.
+        </p>
       </>
     ),
   },
@@ -1834,6 +1980,7 @@ export default function FAQPage() {
     FEATURES,
     USAGE,
     MARKDOWN,
+    SEARCH,
     BYOS,
     BACKUP,
     COMPANY,
@@ -1850,14 +1997,17 @@ export default function FAQPage() {
           encrypted notepad, the Markdown preview with
           security-first defaults (blocked HTML, click-to-load
           external images, no-referrer external links,
-          locally-highlighted code blocks),
-          Bring-Your-Own-Storage local vaults stored as a single{" "}
-          <Code>.flowvault</Code> file on your device, the trusted
-          handover to a beneficiary, drand-backed time-locked notes,
-          Encrypted Send, <Code>.fvault</Code> encrypted backups and
-          restore, and how Flowvault compares to ProtectedText,
-          Standard Notes, CryptPad, and other alternatives. If yours
-          isn&apos;t here, open an issue on GitHub.
+          locally-highlighted code blocks), the{" "}
+          <Code>Cmd</Code>+<Code>K</Code> command-palette search that
+          runs entirely in memory over the notebooks you&apos;ve
+          already unlocked, Bring-Your-Own-Storage local vaults stored
+          as a single <Code>.flowvault</Code> file on your device,
+          the trusted handover to a beneficiary, drand-backed
+          time-locked notes, Encrypted Send, <Code>.fvault</Code>{" "}
+          encrypted backups and restore, and how Flowvault compares
+          to ProtectedText, Standard Notes, CryptPad, and other
+          alternatives. If yours isn&apos;t here, open an issue on
+          GitHub.
         </p>
 
         <Section title="About Flowvault" items={ABOUT} />
@@ -1874,6 +2024,10 @@ export default function FAQPage() {
         <Section
           title="Markdown preview & syntax-highlighted code blocks"
           items={MARKDOWN}
+        />
+        <Section
+          title="Cmd+K search (in-memory only, scoped to your unlocked session)"
+          items={SEARCH}
         />
         <Section
           title="Bring Your Own Storage (local .flowvault files; S3 / WebDAV on the roadmap)"

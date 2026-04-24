@@ -27,6 +27,7 @@ import {
   Database,
   Mail,
   ArrowRight,
+  Search,
 } from "lucide-react";
 
 /**
@@ -76,6 +77,7 @@ const HOMEPAGE_JSON_LD = {
         "Drand-backed time-locked notes",
         "Encrypted Send: self-destructing, view-capped one-time notes",
         "Bring Your Own Storage: local-file vaults stored as a single .flowvault file on your device (File System Access API)",
+        "Cmd+K command-palette search across unlocked notebooks (in-memory only; no persistent index, no server round-trip)",
         "Zero-knowledge .fvault backup and restore (migrate or self-host without decrypting server-side)",
         "Plaintext Markdown (.zip) export for the current slot",
         "No account required",
@@ -230,6 +232,22 @@ export default function HomePage() {
                 ciphertext&rdquo; as an even stronger claim than
                 &ldquo;we can&apos;t decrypt your ciphertext.&rdquo;
                 S3-compatible and WebDAV backends are on the roadmap.
+              </>
+            }
+          />
+          <Feature
+            icon={<Search size={18} />}
+            title="Cmd+K search, in memory only"
+            body={
+              <>
+                Press <code>Ctrl</code>/<code>Cmd</code> + <code>K</code>{" "}
+                to search titles and contents across every notebook
+                you&apos;ve unlocked this session. Keyboard-first
+                navigation, jump straight to the match. There&apos;s no
+                persistent index, no IndexedDB cache, no server
+                round-trip &mdash; the palette can only see what your
+                password has already decrypted into memory, so slots
+                under other passwords stay invisible to it.
               </>
             }
           />

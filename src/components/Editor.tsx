@@ -23,16 +23,19 @@ import {
   Pencil,
   Plus,
   Save,
+  Search,
   Trash2,
   X,
 } from "lucide-react";
 import { AddPasswordModal } from "./AddPasswordModal";
 import { DeadmanModal } from "./DeadmanModal";
 import { ExportMenu } from "./ExportMenu";
+import { SearchPalette } from "./search/SearchPalette";
 import { ViewModeToggle } from "./editor/ViewModeToggle";
 import { useEditorViewMode } from "@/lib/hooks/useEditorViewMode";
 import { deadmanExpiresAt } from "@/lib/vault/deadman";
 import { useNow } from "@/lib/utils/useNow";
+import type { SearchHit } from "@/lib/vault/search";
 
 /**
  * Markdown preview is lazy-loaded so the ~90 KB renderer bundle
@@ -74,6 +77,18 @@ export function Editor() {
   const [deadmanOpen, setDeadmanOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  /**
+   * When the search palette lands a hit, we set this to the match
+   * location and — if needed — switch tabs + force edit mode. The
+   * freshly-mounted textarea consumes it once, focuses, and selects
+   * the match range so the browser auto-scrolls to it.
+   */
+  const [pendingSelection, setPendingSelection] = useState<{
+    notebookId: string;
+    start: number;
+    end: number;
+  } | null>(null);
   const { mode, effectiveMode, setMode, canSplit } = useEditorViewMode();
   const dirtyRef = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -311,6 +326,62 @@ export function Editor() {
     return () => window.removeEventListener("beforeunload", handler);
   }, []);
 
+  /**
+   * Global Ctrl/Cmd+K opens the search palette. Suppressed while
+   * another modal owns the screen so the palette can't stack on top
+   * of a rename dialog or the AddPassword flow. `preventDefault`
+   * also neutralises Firefox's "focus the search bar" shortcut so
+   * we get the key in every browser.
+   */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key.toLowerCase() !== "k") return;
+      if (
+        searchOpen ||
+        addPasswordOpen ||
+        deadmanOpen ||
+        renameTarget !== null ||
+        confirmDelete !== null
+      ) {
+        return;
+      }
+      e.preventDefault();
+      setSearchOpen(true);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [searchOpen, addPasswordOpen, deadmanOpen, renameTarget, confirmDelete]);
+
+  const handleSelectHit = useCallback(
+    (hit: SearchHit) => {
+      setSearchOpen(false);
+      const current = useVault.getState().open;
+      if (!current) return;
+      if (hit.notebookId !== current.bundle.activeId) {
+        switchTo(hit.notebookId);
+      }
+      if (hit.kind === "content") {
+        // Preview mode has no textarea to select into; flip to edit
+        // so the selection handoff below can land. Split keeps its
+        // editable pane on the left, so we leave split alone.
+        if (effectiveMode === "preview") {
+          setMode("edit");
+        }
+        setPendingSelection({
+          notebookId: hit.notebookId,
+          start: hit.start,
+          end: hit.end,
+        });
+      }
+    },
+    [switchTo, effectiveMode, setMode],
+  );
+
+  const consumePendingSelection = useCallback(() => {
+    setPendingSelection(null);
+  }, []);
+
   if (!open || !activeNotebook) return null;
 
   const pct = Math.min(100, Math.round((bundleBytes / capacity) * 100));
@@ -397,6 +468,17 @@ export function Editor() {
           mode so beneficiary / released views can still archive. */}
       <div className="mt-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-2 border-t border-border/40 pt-2">
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setSearchOpen(true)}
+            title="Search this vault (Ctrl/Cmd+K). In-memory only; never leaves the browser."
+          >
+            <Search size={14} /> Search
+            <span className="ml-1 hidden rounded border border-border/80 bg-background px-1 font-mono text-[10px] text-muted sm:inline">
+              ⌘K
+            </span>
+          </Button>
           {!readOnly && supportsDeadman ? (
             <Button
               variant="secondary"
@@ -460,6 +542,8 @@ export function Editor() {
         activeNotebookId={activeNotebook.id}
         content={activeNotebook.content}
         readOnly={readOnly}
+        pendingSelection={pendingSelection}
+        onSelectionApplied={consumePendingSelection}
         onChange={(next) => {
           if (readOnly) return;
           updateActive(next);
@@ -512,6 +596,12 @@ export function Editor() {
         open={deadmanOpen}
         onClose={() => setDeadmanOpen(false)}
       />
+      <SearchPalette
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        notebooks={open.bundle.notebooks}
+        onSelectHit={handleSelectHit}
+      />
     </main>
   );
 }
@@ -522,6 +612,14 @@ interface EditorBodyProps {
   activeNotebookId: string;
   content: string;
   readOnly: boolean;
+  /**
+   * When set and pointing at the active notebook, the textarea
+   * focuses and selects this range on mount. Used by the search
+   * palette to jump to a match. Ignored in pure preview mode, where
+   * there is no textarea to select into.
+   */
+  pendingSelection: { notebookId: string; start: number; end: number } | null;
+  onSelectionApplied: () => void;
   onChange: (next: string) => void;
   onSaveShortcut: () => void;
 }
@@ -532,6 +630,8 @@ function EditorBody({
   activeNotebookId,
   content,
   readOnly,
+  pendingSelection,
+  onSelectionApplied,
   onChange,
   onSaveShortcut,
 }: EditorBodyProps) {
@@ -552,6 +652,8 @@ function EditorBody({
             activeNotebookId={activeNotebookId}
             content={content}
             readOnly={readOnly}
+            pendingSelection={pendingSelection}
+            onSelectionApplied={onSelectionApplied}
             onChange={onChange}
             onSaveShortcut={onSaveShortcut}
             shape="split-left"
@@ -570,6 +672,8 @@ function EditorBody({
         activeNotebookId={activeNotebookId}
         content={content}
         readOnly={readOnly}
+        pendingSelection={pendingSelection}
+        onSelectionApplied={onSelectionApplied}
         onChange={onChange}
         onSaveShortcut={onSaveShortcut}
         shape="full"
@@ -585,6 +689,8 @@ function EditorTextarea({
   activeNotebookId,
   content,
   readOnly,
+  pendingSelection,
+  onSelectionApplied,
   onChange,
   onSaveShortcut,
   shape,
@@ -592,10 +698,13 @@ function EditorTextarea({
   activeNotebookId: string;
   content: string;
   readOnly: boolean;
+  pendingSelection: { notebookId: string; start: number; end: number } | null;
+  onSelectionApplied: () => void;
   onChange: (next: string) => void;
   onSaveShortcut: () => void;
   shape: PaneShape;
 }) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   // In split mode the outer wrapper carries the border and rounding,
   // so the textarea itself drops both. In "full" mode the textarea
   // owns the chrome, matching the pre-Markdown look exactly.
@@ -603,9 +712,32 @@ function EditorTextarea({
     shape === "full"
       ? "h-[62vh] rounded-b-xl rounded-tr-xl border-2 border-t-0 border-border bg-background-elev focus:border-accent focus:ring-2 focus:ring-accent/30"
       : "h-full border-0 bg-transparent focus:ring-0";
+
+  /**
+   * Apply a pending text selection requested by the search palette.
+   * The `key={activeNotebookId}` on the textarea means this effect
+   * runs fresh against a newly-mounted element whenever the active
+   * tab changes, so the selection lands on the correct textarea. We
+   * clamp the range to content length to defend against stale hits
+   * after an edit.
+   */
+  useEffect(() => {
+    if (!pendingSelection) return;
+    if (pendingSelection.notebookId !== activeNotebookId) return;
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const max = ta.value.length;
+    const start = Math.min(pendingSelection.start, max);
+    const end = Math.min(pendingSelection.end, max);
+    ta.focus();
+    ta.setSelectionRange(start, end);
+    onSelectionApplied();
+  }, [pendingSelection, activeNotebookId, onSelectionApplied]);
+
   return (
     <textarea
       key={activeNotebookId}
+      ref={textareaRef}
       value={content}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={(e) => {

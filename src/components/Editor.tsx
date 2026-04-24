@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { Button } from "./ui/Button";
 import { useVault } from "@/lib/store/vault";
 import { saveVault } from "@/lib/vault/service";
+import { isDemoSlug } from "@/lib/vault/demo";
 import { slotCapacity } from "@/lib/crypto/volume";
 import { getVaultStorage } from "@/lib/storage";
 import {
@@ -17,6 +18,7 @@ import {
   Check,
   CircleAlert,
   Clock,
+  Info,
   KeyRound,
   Loader2,
   LogOut,
@@ -55,7 +57,16 @@ type Status =
   | { kind: "idle" }
   | { kind: "saving" }
   | { kind: "saved"; at: number }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string }
+  /**
+   * Emitted when a save is attempted on a read-only demo vault. The
+   * user can still edit the bundle in their browser -- the text area
+   * and tab controls are left enabled so they can explore -- but the
+   * write path never reaches the network. This status surfaces that
+   * fact inline instead of leaving the user to wonder why "Saved"
+   * never appears.
+   */
+  | { kind: "demo-blocked"; at: number };
 
 const AUTO_SAVE_MS = 1500;
 
@@ -154,6 +165,20 @@ export function Editor() {
     saveRef.current = async (): Promise<void> => {
       const current = getOpen();
       if (!current) return;
+
+      // Demo vaults are read-only on the server. Short-circuit before
+      // any Firestore traffic so the user gets inline feedback and
+      // the Firestore SDK never logs a spurious permission-denied
+      // error to the console. The textarea is left editable by
+      // design -- we *want* users to poke at the demo -- so we also
+      // clear the dirty flag so the beforeunload prompt doesn't
+      // scare them on close.
+      if (isDemoSlug(current.slug)) {
+        dirtyRef.current = false;
+        pendingRef.current = false;
+        setStatus({ kind: "demo-blocked", at: Date.now() });
+        return;
+      }
 
       if (inFlightRef.current) {
         // Coalesce: another save is running. Let it finish and then
@@ -293,22 +318,36 @@ export function Editor() {
    *     save from prior typing is preserved and will fire on its own.
    */
   const scheduleDebouncedSave = useCallback(() => {
+    // Demo vaults are read-only on the server. Don't mark the bundle
+    // dirty (so `beforeunload` never prompts about lost changes that
+    // were never intended to persist) and don't burn a setTimeout to
+    // reach a no-op in saveRef. Exploration still works: the bundle
+    // stays in memory until lock.
+    const current = getOpen();
+    if (current && isDemoSlug(current.slug)) return;
     dirtyRef.current = true;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       saveTimer.current = null;
       void saveRef.current();
     }, AUTO_SAVE_MS);
-  }, []);
+  }, [getOpen]);
 
   const flushSaveNow = useCallback(() => {
-    dirtyRef.current = true;
+    // Demo: still reach saveRef so the user gets the "Demo -- not saved"
+    // status badge on explicit Save-button / Ctrl+S interactions, but
+    // don't bump the dirty flag or schedule follow-ups.
+    const current = getOpen();
+    const demo = current ? isDemoSlug(current.slug) : false;
+    if (!demo) {
+      dirtyRef.current = true;
+    }
     if (saveTimer.current) {
       clearTimeout(saveTimer.current);
       saveTimer.current = null;
     }
     void saveRef.current();
-  }, []);
+  }, [getOpen]);
 
   useEffect(() => {
     return () => {
@@ -385,7 +424,13 @@ export function Editor() {
   if (!open || !activeNotebook) return null;
 
   const pct = Math.min(100, Math.round((bundleBytes / capacity) * 100));
+  // `readOnly` locks the editing surface entirely (beneficiary view,
+  // released-to-beneficiary vaults). The textarea goes read-only, tab
+  // operations are suppressed, and the Save button is hidden. The
+  // demo vault is *not* readOnly at this layer -- we want visitors
+  // to type and explore freely, the save path is what gets neutered.
   const readOnly = open.beneficiary || open.deadman?.released === true;
+  const isDemoVault = !readOnly && isDemoSlug(open.slug);
   // BYOS vaults cannot participate in the hosted handover sweep; hide
   // the feature entirely rather than showing a disabled control.
   const supportsDeadman = open.storageKind === "firestore";
@@ -424,6 +469,26 @@ export function Editor() {
           {open.beneficiary
             ? "Beneficiary view: this vault was handed over to you because the owner stopped checking in. You can read but not modify it."
             : "This vault has been handed over to its beneficiary and is locked against further writes. To start fresh, create a new vault under a new URL."}
+        </div>
+      ) : null}
+      {isDemoVault ? (
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-accent/40 bg-accent/5 px-3 py-2.5 text-xs leading-relaxed text-foreground">
+          <Info size={14} className="mt-0.5 shrink-0 text-accent" />
+          <span>
+            <strong>Demo vault.</strong> Edit anything you like &mdash;
+            the server won&apos;t accept writes, so nothing you type
+            here is saved or shared with the next visitor. Lock and
+            unlock with <code className="rounded bg-background-elev px-1 font-mono text-[11px]">CorrectPassword</code>{" "}
+            or <code className="rounded bg-background-elev px-1 font-mono text-[11px]">DecoyPassword</code>{" "}
+            to flip between the two notebooks.{" "}
+            <a
+              href="/"
+              className="text-accent underline-offset-2 hover:underline"
+            >
+              Pick your own URL
+            </a>{" "}
+            when you&apos;re ready to make a real one.
+          </span>
         </div>
       ) : null}
       {/* Identity row: who/what is open + live session status on the
@@ -1113,6 +1178,16 @@ function StatusBadge({ status }: { status: Status }) {
     return (
       <span className="inline-flex items-center gap-1.5 text-xs text-danger">
         <CircleAlert size={12} /> {status.message}
+      </span>
+    );
+  }
+  if (status.kind === "demo-blocked") {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 text-xs text-accent"
+        title="This is a shared demo vault. Changes aren't saved on purpose. Pick your own URL on the homepage to make a real, writeable vault."
+      >
+        <Info size={12} /> Demo &mdash; not saved
       </span>
     );
   }

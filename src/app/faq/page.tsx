@@ -108,6 +108,242 @@ const ABOUT: QA[] = [
     ),
   },
   {
+    q: "Can I try it without committing a password?",
+    a: (
+      <>
+        <p>
+          Yes. There&apos;s a live public demo at{" "}
+          <a
+            href="/s/demo"
+            className="text-accent hover:underline"
+          >
+            useflowvault.com/s/demo
+          </a>
+          {" "}with two pre-loaded notebooks behind two different
+          passwords, so you can feel the hidden-volume design work with
+          your own eyes in about 30 seconds.
+        </p>
+        <ul className="mt-3 list-disc space-y-1 pl-5">
+          <li>
+            <Code>CorrectPassword</Code> opens the &ldquo;real&rdquo;
+            notebook &mdash; a walkthrough plus example tabs for
+            wallet seeds, API-key rotation, and a scratchpad.
+          </li>
+          <li>
+            <Code>DecoyPassword</Code> opens the decoy &mdash; a
+            deliberately boring cover notebook (shopping list,
+            recipes), shaped like what a plausible decoy actually
+            looks like in the wild.
+          </li>
+        </ul>
+        <p className="mt-3">
+          Same URL. Same ciphertext blob on our server. Two completely
+          different screens. The blob is indistinguishable whether the
+          other notebook is there or not &mdash; that&apos;s the whole
+          deniability property, end-to-end visible without you having
+          to pick a password of your own.
+        </p>
+        <p className="mt-3">
+          <Strong>Trust boundary for the demo:</Strong> the server
+          rejects all writes at the demo URL. You can edit anything
+          in your browser to poke around, but nothing you type is
+          saved, shared, or visible to the next visitor &mdash; the
+          vault resets the moment you close the tab. A scheduled
+          re-seeding job restores the canonical content every hour
+          as a second-line backstop against rule regressions or
+          admin slips. Don&apos;t put real secrets in it anyway
+          &mdash; it is a public, credentialed walkthrough.
+        </p>
+      </>
+    ),
+  },
+  {
+    q: "Should I actually use Flowvault, or something else?",
+    a: (
+      <>
+        <p>
+          An honest shortlist &mdash; we&apos;d rather you pick the
+          right tool than convert you to the wrong one.
+        </p>
+        <p className="mt-3">
+          <Strong>Pick Flowvault if:</Strong> you want a browser-only
+          encrypted scratchpad with no account, you want hidden-volume
+          deniability (multiple passwords on the same URL unlock
+          different notebooks), or you need an account-less
+          self-destructing share link. Typical users: people replacing
+          ProtectedText, people stashing wallet seeds / API keys /
+          medical info, and people who want a decoy password for
+          travel.
+        </p>
+        <p className="mt-3">
+          <Strong>Pick something else if:</Strong> you want a
+          multi-device notes app &mdash;{" "}
+          <a
+            href="https://standardnotes.com"
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent hover:underline"
+          >
+            Standard Notes
+          </a>{" "}
+          or{" "}
+          <a
+            href="https://notesnook.com"
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent hover:underline"
+          >
+            Notesnook
+          </a>{" "}
+          are excellent there. You keep long-form journals &mdash;{" "}
+          <a
+            href="https://obsidian.md"
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent hover:underline"
+          >
+            Obsidian
+          </a>{" "}
+          or{" "}
+          <a
+            href="https://joplinapp.org"
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent hover:underline"
+          >
+            Joplin
+          </a>{" "}
+          handle volume better. You want real-time collaborative
+          editing &mdash; use{" "}
+          <a
+            href="https://cryptpad.fr"
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent hover:underline"
+          >
+            CryptPad
+          </a>
+          . You&apos;re storing the <em>only</em> copy of a crypto
+          wallet seed &mdash; use{" "}
+          <a
+            href="https://keepassxc.org"
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent hover:underline"
+          >
+            KeePassXC
+          </a>{" "}
+          or a paper backup in a safe, and at most keep Flowvault as a
+          <em> second</em> location for a split seed.
+        </p>
+        <p className="mt-3">
+          The realistic shape is: Flowvault complements a local-first
+          app, it doesn&apos;t replace one. A lot of users end up
+          running both.
+        </p>
+      </>
+    ),
+  },
+  {
+    q: "Does Flowvault work on mobile / iOS / Android / Safari / Firefox?",
+    a: (
+      <>
+        <p>
+          Partially. Here&apos;s the honest matrix:
+        </p>
+        <ul className="mt-3 list-disc space-y-1 pl-5">
+          <li>
+            <Strong>The core hosted vault</Strong> (
+            <Code>/s/&lt;slug&gt;</Code>) works in every modern
+            browser &mdash; iOS Safari, Android Chrome, desktop
+            Firefox, desktop Safari. You can unlock, read, and write
+            from a phone, it just isn&apos;t optimised into a
+            standalone app experience.
+          </li>
+          <li>
+            <Strong>Bring Your Own Storage</Strong> (local{" "}
+            <Code>.flowvault</Code> files) requires the{" "}
+            <a
+              href="https://developer.mozilla.org/en-US/docs/Web/API/File_System_API"
+              target="_blank"
+              rel="noreferrer"
+              className="text-accent hover:underline"
+            >
+              File System Access API
+            </a>
+            , which today ships in Chromium-based browsers on
+            desktop only (Chrome, Edge, Brave, Arc, Opera,
+            Vivaldi). Firefox and Safari don&apos;t implement it
+            yet; mobile support is spotty.
+          </li>
+          <li>
+            <Strong>There is no native app</Strong> &mdash; no iOS
+            app, no Android app, no Electron build. It is a
+            deliberately server-agnostic web app. We may add a PWA
+            with offline mode (it&apos;s on the roadmap), but
+            native apps aren&apos;t on the near-term plan.
+          </li>
+        </ul>
+        <p className="mt-3">
+          If mobile-first editing or offline-first workflow is a
+          hard requirement, use Standard Notes, Notesnook, or
+          Obsidian. Flowvault is a better fit as the
+          &ldquo;browser tab you open for one specific purpose&rdquo;
+          than as your daily driver for a 5,000-note knowledge base.
+        </p>
+      </>
+    ),
+  },
+  {
+    q: "Is 8 KiB per notebook actually enough?",
+    a: (
+      <>
+        <p>
+          Depends on what you write. Concrete reference points:
+        </p>
+        <ul className="mt-3 list-disc space-y-1 pl-5">
+          <li>
+            <Strong>~1,500 words</Strong> of prose per slot, or
+            roughly 4&ndash;5 tightly-written pages.
+          </li>
+          <li>
+            <Strong>A crypto wallet seed</Strong> (24 BIP-39
+            words): ~150 bytes. You can store{" "}
+            <em>dozens</em> of them per slot.
+          </li>
+          <li>
+            <Strong>A password manager export</Strong> of 300 short
+            credentials: ~15 KiB. Doesn&apos;t fit in one slot,
+            does fit across two tabs.
+          </li>
+          <li>
+            <Strong>A daily journal entry</Strong> of 300 words:
+            ~2 KiB. A slot is full after ~4&ndash;5 entries.
+          </li>
+          <li>
+            <Strong>A meeting-notes workflow</Strong> (20 notes /
+            month, 400 words each): ~40 KiB / month. A slot fills
+            in 5 days.
+          </li>
+        </ul>
+        <p className="mt-3">
+          Good rule of thumb: if you&apos;re writing{" "}
+          <em>reference material</em> (credentials, recipes, how-tos,
+          contact lists, TODO lists, one-off scratch), 8 KiB per
+          slot × up to 64 slots is plenty. If you&apos;re writing{" "}
+          <em>log-style material</em> (journal, meeting notes,
+          daily standup), you&apos;ll hit the ceiling within weeks
+          and the friction is real &mdash; use something built for
+          that shape. Per-notebook limits can be raised in future
+          vault versions (the on-disk format is already param-driven),
+          but the current default is a tradeoff against keeping the
+          fixed-size blob small enough to stay snappy on mobile
+          connections.
+        </p>
+      </>
+    ),
+  },
+  {
     q: "Do I need to create an account?",
     a: "No. There is no sign-up, no email, no phone number. A URL slug plus a password is the entire identity system.",
   },

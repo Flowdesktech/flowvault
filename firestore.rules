@@ -4,12 +4,21 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // Sites: opaque hidden-volume blobs keyed by SHA-256 of the slug.
+    //
+    // The public demo vault at /s/demo is read-only for anyone going
+    // through the client SDK. It's a shared walkthrough with known
+    // credentials (see src/lib/vault/demo.ts), so allowing writes
+    // would invite vandalism. Seeding / re-seeding is done via the
+    // Admin SDK (a scheduled Cloud Function), which bypasses these
+    // rules.
     match /sites/{siteId} {
       allow read: if true;
 
-      allow create: if isValidCreate(request.resource.data);
+      allow create: if isValidCreate(request.resource.data)
+                   && !isDemoSite(siteId);
 
-      allow update: if isValidUpdate(resource.data, request.resource.data);
+      allow update: if isValidUpdate(resource.data, request.resource.data)
+                   && !isDemoSite(siteId);
 
       allow delete: if false;
     }
@@ -34,6 +43,17 @@ service cloud.firestore {
       allow create: if isValidSend(request.resource.data);
       allow update, delete: if false;  // No client mutations after creation.
     }
+  }
+
+  // Known read-only-on-server vault IDs. Keep this list tiny — every
+  // entry freezes a vault against client writes. Hash derivation:
+  //   sha256('flowvault:v1:' + slug)
+  // (see src/lib/crypto/siteId.ts). We hard-code the hex digest here
+  // because Firestore rules have no hashing primitives.
+  //
+  //   'demo' -> ffd558c4506367d79b56ee14ba09546c2e80c20ec70e31f75efc56b87aeb8876
+  function isDemoSite(siteId) {
+    return siteId == 'ffd558c4506367d79b56ee14ba09546c2e80c20ec70e31f75efc56b87aeb8876';
   }
 
   function isValidCreate(d) {

@@ -1,13 +1,51 @@
 # Flowvault
 
-**A zero-knowledge encrypted notepad with plausible deniability.** One
-URL can hide multiple notebooks behind different passwords, and neither
-the server nor anyone who steals the ciphertext blob can tell how many
-notebooks actually exist.
+**The encrypted notepad where a decoy password is a feature, not a
+bug.** Pick a URL, set a password, write. One Flowvault link can hold
+up to 64 independent notebooks behind 64 different passwords &mdash;
+each unlocks its own workspace, and the server sees one
+indistinguishable blob either way. Hand over a decoy if you&rsquo;re
+ever forced to; your real notebook stays invisible.
+
+> **1 URL · up to 64 notebooks · 512 KiB total · Argon2id + AES-256-GCM · no account · open source end-to-end**
 
 **[Try it](https://useflowvault.com)** · **[Blog](https://useflowvault.com/blog)** · **[Security](https://useflowvault.com/security)** · **[Self-host](#setup)** · **[Donate](https://useflowvault.com/donate)**
 
-What&rsquo;s unique in this category:
+## See it in 30 seconds — live demo, no sign-up
+
+There's a public demo vault at **[useflowvault.com/s/demo](https://useflowvault.com/s/demo)** with two pre-loaded notebooks behind two different passwords, so you can see the hidden-volume design work before picking a password of your own:
+
+| Password | What opens |
+| --- | --- |
+| `CorrectPassword` | The "real" notebook — walkthrough + example tabs for wallet seeds, API keys, scratchpad |
+| `DecoyPassword` | The decoy — boring on purpose, shaped like what a plausible cover notebook actually looks like |
+
+Same URL, same ciphertext blob on the server, two completely different screens. Lock the vault in between to feel it. Contents reset hourly; don't put real secrets in the demo.
+
+## Is this the right tool for you?
+
+Flowvault is deliberately narrow. It's good at roughly two jobs and
+honest about everything else.
+
+**Reach for Flowvault when you want:**
+
+- An encrypted scratchpad you can open from any browser without signing up &mdash; borrowed laptops, work machines, phones, library kiosks.
+- A place for notes you'd rather not be associated with: recovery phrases, wallet seeds, medical info, contact details for sensitive relationships, things you'd hand over a *decoy* password for at a border crossing.
+- A modern ProtectedText replacement with stronger crypto, hidden volumes, and an open backend you can self-host.
+- A one-shot self-destructing link (**Encrypted Send**) to share a password or API key without making the recipient sign up for Bitwarden or 1Password first.
+- To keep the ciphertext off our servers entirely &mdash; same app, but the vault lives as a single `.flowvault` file on your own disk (**Bring Your Own Storage**).
+
+**Pick something else if:**
+
+- You want a multi-device notes app with sync &mdash; try [Standard Notes](https://standardnotes.com) or [Notesnook](https://notesnook.com). Flowvault is browser-only; no native mobile app today.
+- You keep long-form journals. Each slot holds ~8 KiB (roughly 1,500 words). Great for dense notes; too tight for daily journaling across a year. Use [Obsidian](https://obsidian.md) or [Joplin](https://joplinapp.org) with your own E2EE sync instead.
+- You need real-time collaborative editing. Use [CryptPad](https://cryptpad.fr). Flowvault handles two editors on the same vault via optimistic concurrency, but it isn't a live-cursor experience.
+- You're stashing a crypto wallet seed and want an air-gapped workflow &mdash; keep using [KeePassXC](https://keepassxc.org) or a paper backup in a safe. Flowvault is great as a *second* location for a split seed, not as the only copy.
+- Your threat model includes a persistent network observer correlating writes against a specific identity. Content deniability is intact; vault *existence* at your chosen URL is observable. See the [security page](https://useflowvault.com/security) for the honest version.
+
+---
+
+## What's unique in this category
 
 - **Hidden volumes** &mdash; VeraCrypt-style plausible deniability for a browser notepad. One URL, up to 64 notebooks, each behind its own password. Empty slots are indistinguishable from real ciphertext. ([deep dive](https://useflowvault.com/blog/plausible-deniability-hidden-volumes-explained))
 - **Trusted handover** &mdash; nominate a beneficiary with a separate password; if you stop checking in for an interval you configure, the vault auto-hands over. No account required for either party. ([deep dive](https://useflowvault.com/blog/trusted-handover-encrypted-notes-beneficiary))

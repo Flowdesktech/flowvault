@@ -94,18 +94,19 @@ export default function HomePage() {
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-16">
         <section className="mx-auto max-w-2xl text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background-elev px-3 py-1 text-xs text-muted">
-            Zero-knowledge · No account · Open from the frontend down to the
-            Firestore rules
+            Encrypted notepad · No account · Open source end-to-end
           </span>
           <h1 className="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl">
-            Notes you can deny you have.
+            The encrypted notepad where a decoy password is a feature,
+            not a bug.
           </h1>
           <p className="mt-4 text-base text-muted sm:text-lg">
-            An encrypted online notepad where one URL can hide many
-            notebooks behind different passwords. Even we can&apos;t tell
-            how many you have, or whether you have any. The closest thing
-            to a deniable scratchpad you can open in any browser without
-            installing anything.
+            Pick a URL, set a password, write. One Flowvault link can hold
+            up to 64 independent notebooks behind 64 different
+            passwords &mdash; each unlocks its own private workspace, and
+            the server sees one indistinguishable blob either way. Hand
+            over a decoy if you&apos;re ever forced to; your real
+            notebook stays invisible.
           </p>
 
           <div className="mt-10">
@@ -114,7 +115,26 @@ export default function HomePage() {
 
           <p className="mt-3 text-xs text-muted">
             No account. No email. Your password is your only key &mdash; we
-            never see it.{" "}
+            never see it.
+          </p>
+
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] uppercase tracking-wider text-muted">
+            <span>1 URL</span>
+            <span aria-hidden className="opacity-40">
+              ·
+            </span>
+            <span>Up to 64 notebooks</span>
+            <span aria-hidden className="opacity-40">
+              ·
+            </span>
+            <span>512 KiB total</span>
+            <span aria-hidden className="opacity-40">
+              ·
+            </span>
+            <span>Argon2id + AES-256-GCM</span>
+          </div>
+
+          <p className="mt-6 text-xs text-muted">
             <Link
               href="/faq"
               className="underline-offset-4 hover:text-foreground hover:underline"
@@ -137,6 +157,82 @@ export default function HomePage() {
               file and nothing ever reaches our servers.
             </p>
             <LocalVaultEntry />
+          </div>
+        </section>
+
+        {/*
+          Zero-commitment demo callout. The single biggest conversion
+          lever we have -- a visitor can see the hidden-volume design
+          work with their own eyes in ~30 seconds without picking a
+          password, making a URL, or committing any of their own data.
+          Positioned directly after the hero so it catches skeptics
+          before they scroll into the comparison tables.
+        */}
+        <section className="mt-16">
+          <div className="mx-auto max-w-3xl overflow-hidden rounded-2xl border-2 border-dashed border-accent/40 bg-accent/5">
+            <div className="grid gap-6 p-6 md:grid-cols-[1fr_auto] md:items-center md:p-8">
+              <div>
+                <div className="flex items-center gap-2 text-accent">
+                  <EyeOff size={16} />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider">
+                    Live demo &middot; no sign-up
+                  </span>
+                </div>
+                <h2 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">
+                  See plausible deniability work in 30 seconds.
+                </h2>
+                <p className="mt-3 text-sm leading-relaxed text-muted">
+                  We&apos;ve pre-loaded a vault at{" "}
+                  <code className="rounded bg-background-elev-2 px-1.5 py-0.5 font-mono text-[12px] text-foreground">
+                    /s/demo
+                  </code>{" "}
+                  with{" "}
+                  <span className="text-foreground">two</span>{" "}
+                  different notebooks behind{" "}
+                  <span className="text-foreground">two</span>{" "}
+                  different passwords. Open it, unlock with one, lock,
+                  unlock with the other. Same URL, same ciphertext on
+                  our server, two completely different screens.
+                </p>
+                <dl className="mt-5 grid gap-2 text-sm sm:grid-cols-2">
+                  <div className="rounded-lg border border-success/30 bg-success/5 p-3">
+                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-success">
+                      Opens the &ldquo;real&rdquo; notebook
+                    </dt>
+                    <dd className="mt-1 font-mono text-sm text-foreground">
+                      CorrectPassword
+                    </dd>
+                  </div>
+                  <div className="rounded-lg border border-border bg-background-elev p-3">
+                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+                      Opens a decoy &mdash; innocuous, believable
+                    </dt>
+                    <dd className="mt-1 font-mono text-sm text-foreground">
+                      DecoyPassword
+                    </dd>
+                  </div>
+                </dl>
+                <p className="mt-4 text-[11px] leading-relaxed text-muted">
+                  Read-only on the server &mdash; edit anything you like
+                  in your browser, writes are rejected so nothing you
+                  type is saved or shared with the next visitor. The
+                  canonical content is re-seeded hourly as an extra
+                  backstop.
+                </p>
+              </div>
+              <div className="flex md:flex-col md:items-stretch md:gap-3">
+                <Link
+                  href="/s/demo"
+                  className="group inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-background transition hover:bg-accent/90 md:w-auto md:min-w-[180px]"
+                >
+                  Open the demo
+                  <ArrowRight
+                    size={16}
+                    className="transition-transform group-hover:translate-x-0.5"
+                  />
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -256,6 +352,199 @@ export default function HomePage() {
             title="Fully open source"
             body="Frontend, Cloud Functions, Firestore rules, and deployment config are all in the public repo. Audit every line that touches your data — or self-host the entire stack."
           />
+        </section>
+
+        {/*
+          Honesty block. Placed directly after the feature grid and before
+          the big comparison tables, because the biggest reason qualified
+          users bounce is not knowing whether the product fits their
+          workflow. Admitting what Flowvault isn't builds more trust than
+          another row in a feature table.
+        */}
+        <section className="mt-24">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              Is Flowvault for you?
+            </h2>
+            <p className="mt-3 text-muted">
+              A quick gut-check before you commit a password. Flowvault is
+              a deliberately narrow tool &mdash; it&apos;s great at
+              roughly two jobs and honest about everything else.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-5 md:grid-cols-2">
+            <div className="rounded-2xl border border-success/30 bg-success/5 p-6">
+              <div className="flex items-center gap-2 text-success">
+                <Check size={16} />
+                <h3 className="text-sm font-semibold uppercase tracking-wider">
+                  You&apos;ll probably love it
+                </h3>
+              </div>
+              <ul className="mt-4 space-y-3 text-sm leading-relaxed text-muted">
+                <li>
+                  <span className="text-foreground">
+                    You want a quick, encrypted scratchpad
+                  </span>{" "}
+                  you can open in any browser without signing up for
+                  anything &mdash; on a borrowed laptop, a work
+                  machine, a phone, a library terminal.
+                </li>
+                <li>
+                  <span className="text-foreground">
+                    You have notes you&apos;d rather not have
+                    associated with you
+                  </span>{" "}
+                  &mdash; recovery phrases, wallet seeds, medical
+                  details, contact info for sensitive relationships,
+                  things you&apos;d hand over a decoy password for
+                  at a border crossing.
+                </li>
+                <li>
+                  <span className="text-foreground">
+                    You&apos;re replacing ProtectedText
+                  </span>{" "}
+                  and want the same &ldquo;URL + password&rdquo; shape
+                  with a stronger threat model, hidden volumes, and
+                  open server code.
+                </li>
+                <li>
+                  <span className="text-foreground">
+                    You want a one-shot self-destructing link
+                  </span>{" "}
+                  to share a password or API key &mdash; without
+                  asking the recipient to make a Bitwarden or
+                  1Password account first.
+                </li>
+                <li>
+                  <span className="text-foreground">
+                    You want to keep the ciphertext off the cloud
+                    entirely
+                  </span>{" "}
+                  &mdash; same app, but the vault is a single{" "}
+                  <code className="rounded bg-background-elev-2 px-1 py-0.5 font-mono text-[11px]">
+                    .flowvault
+                  </code>{" "}
+                  file on your own disk.
+                </li>
+              </ul>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-background-elev p-6">
+              <div className="flex items-center gap-2 text-muted">
+                <X size={16} />
+                <h3 className="text-sm font-semibold uppercase tracking-wider">
+                  Pick something else if&hellip;
+                </h3>
+              </div>
+              <ul className="mt-4 space-y-3 text-sm leading-relaxed text-muted">
+                <li>
+                  <span className="text-foreground">
+                    You want a multi-device notes app with sync.
+                  </span>{" "}
+                  Try{" "}
+                  <a
+                    href="https://standardnotes.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent hover:underline"
+                  >
+                    Standard Notes
+                  </a>{" "}
+                  or{" "}
+                  <a
+                    href="https://notesnook.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent hover:underline"
+                  >
+                    Notesnook
+                  </a>
+                  . Flowvault is browser-only with no native mobile
+                  app today.
+                </li>
+                <li>
+                  <span className="text-foreground">
+                    You keep long-form journals.
+                  </span>{" "}
+                  Each slot holds ~8 KiB (roughly 1,500 words).
+                  Great for dense notes and lists &mdash; too tight
+                  for daily journaling across a year. Use{" "}
+                  <a
+                    href="https://obsidian.md"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent hover:underline"
+                  >
+                    Obsidian
+                  </a>{" "}
+                  or{" "}
+                  <a
+                    href="https://joplinapp.org"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent hover:underline"
+                  >
+                    Joplin
+                  </a>{" "}
+                  and add your own E2EE sync.
+                </li>
+                <li>
+                  <span className="text-foreground">
+                    You need real-time collaborative editing.
+                  </span>{" "}
+                  Use{" "}
+                  <a
+                    href="https://cryptpad.fr"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent hover:underline"
+                  >
+                    CryptPad
+                  </a>
+                  . Flowvault handles two editors on the same vault
+                  via optimistic concurrency, but it isn&apos;t a
+                  live-cursor experience.
+                </li>
+                <li>
+                  <span className="text-foreground">
+                    You&apos;re stashing a crypto wallet seed and
+                    want an air-gapped workflow.
+                  </span>{" "}
+                  Keep using{" "}
+                  <a
+                    href="https://keepassxc.org"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent hover:underline"
+                  >
+                    KeePassXC
+                  </a>{" "}
+                  or a paper backup in a safe. Flowvault is great
+                  as a <em>second</em> location for a password-split
+                  seed, not as the only copy.
+                </li>
+                <li>
+                  <span className="text-foreground">
+                    Your threat model includes a persistent network
+                    observer
+                  </span>{" "}
+                  correlating writes against a specific identity.
+                  Plausible deniability of <em>content</em> stays
+                  intact, but the <em>existence</em> of a vault at
+                  your chosen URL is observable &mdash; we&apos;re
+                  honest about this in the{" "}
+                  <Link
+                    href="/security"
+                    className="text-accent hover:underline"
+                  >
+                    security page
+                  </Link>
+                  .
+                </li>
+              </ul>
+            </div>
+          </div>
         </section>
 
         {/* ---------------------------------------------------------------- */}

@@ -215,9 +215,7 @@ export default function HomePage() {
                 <p className="mt-4 text-[11px] leading-relaxed text-muted">
                   Read-only on the server &mdash; edit anything you like
                   in your browser, writes are rejected so nothing you
-                  type is saved or shared with the next visitor. The
-                  canonical content is re-seeded hourly as an extra
-                  backstop.
+                  type is saved or shared with the next visitor.
                 </p>
               </div>
               <div className="flex md:flex-col md:items-stretch md:gap-3">

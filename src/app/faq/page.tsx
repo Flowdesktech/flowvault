@@ -113,12 +113,9 @@ const ABOUT: QA[] = [
       <>
         <p>
           Yes. There&apos;s a live public demo at{" "}
-          <a
-            href="/s/demo"
-            className="text-accent hover:underline"
-          >
+          <Link href="/s/demo" className="text-accent hover:underline">
             useflowvault.com/s/demo
-          </a>
+          </Link>
           {" "}with two pre-loaded notebooks behind two different
           passwords, so you can feel the hidden-volume design work with
           your own eyes in about 30 seconds.
@@ -148,11 +145,9 @@ const ABOUT: QA[] = [
           rejects all writes at the demo URL. You can edit anything
           in your browser to poke around, but nothing you type is
           saved, shared, or visible to the next visitor &mdash; the
-          vault resets the moment you close the tab. A scheduled
-          re-seeding job restores the canonical content every hour
-          as a second-line backstop against rule regressions or
-          admin slips. Don&apos;t put real secrets in it anyway
-          &mdash; it is a public, credentialed walkthrough.
+          vault resets the moment you close the tab. Don&apos;t put
+          real secrets in it anyway &mdash; it is a public,
+          credentialed walkthrough.
         </p>
       </>
     ),

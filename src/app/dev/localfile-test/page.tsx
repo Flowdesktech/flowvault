@@ -94,10 +94,6 @@ export default function LocalFileTestPage() {
   const append = useCallback((line: LogLine) => {
     setLog((prev) => [...prev.slice(-49), line]);
   }, []);
-  const info = useCallback(
-    (text: string) => append({ kind: "info", text }),
-    [append],
-  );
   const ok = useCallback(
     (text: string) => append({ kind: "ok", text }),
     [append],

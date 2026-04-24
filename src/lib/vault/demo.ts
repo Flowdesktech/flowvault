@@ -14,10 +14,11 @@
  *   2. The Editor checks `isDemoSlug(slug)` and short-circuits every
  *      save path, so users never see a mysterious 403 from Firestore
  *      and saved-state indicators stay honest.
- *   3. A scheduled Cloud Function re-seeds the canonical ciphertext
- *      periodically so that even if a write slipped through (rule
- *      regression, admin-SDK slip), the vault self-heals within the
- *      configured window.
+ *
+ * The demo ciphertext was seeded once manually (before the rules were
+ * tightened). If the canonical content ever needs to change, temporarily
+ * relax the demo guard in `firestore.rules`, re-seed via the normal
+ * client flow, then restore the guard.
  *
  * Add more slugs here if we launch a second demo. Keep the list tiny;
  * every entry is a public surface.

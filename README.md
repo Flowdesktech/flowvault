@@ -20,7 +20,7 @@ There's a public demo vault at **[useflowvault.com/s/demo](https://useflowvault.
 | `CorrectPassword` | The "real" notebook — walkthrough + example tabs for wallet seeds, API keys, scratchpad |
 | `DecoyPassword` | The decoy — boring on purpose, shaped like what a plausible cover notebook actually looks like |
 
-Same URL, same ciphertext blob on the server, two completely different screens. Lock the vault in between to feel it. Contents reset hourly; don't put real secrets in the demo.
+Same URL, same ciphertext blob on the server, two completely different screens. Lock the vault in between to feel it. The server rejects all writes at the demo URL — local edits only, nothing is saved or shared with the next visitor. Don't put real secrets in it anyway; it's a public walkthrough.
 
 ## Is this the right tool for you?
 

@@ -8,9 +8,10 @@ service cloud.firestore {
     // The public demo vault at /s/demo is read-only for anyone going
     // through the client SDK. It's a shared walkthrough with known
     // credentials (see src/lib/vault/demo.ts), so allowing writes
-    // would invite vandalism. Seeding / re-seeding is done via the
-    // Admin SDK (a scheduled Cloud Function), which bypasses these
-    // rules.
+    // would invite vandalism. The canonical ciphertext was seeded
+    // once manually before this guard was enabled; any future content
+    // change requires temporarily relaxing this guard, re-seeding via
+    // the normal client flow, then restoring it.
     match /sites/{siteId} {
       allow read: if true;
 

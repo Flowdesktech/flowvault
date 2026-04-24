@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { Button } from "./ui/Button";
 import { useVault } from "@/lib/store/vault";
 import { saveVault } from "@/lib/vault/service";
@@ -481,12 +482,12 @@ export function Editor() {
             unlock with <code className="rounded bg-background-elev px-1 font-mono text-[11px]">CorrectPassword</code>{" "}
             or <code className="rounded bg-background-elev px-1 font-mono text-[11px]">DecoyPassword</code>{" "}
             to flip between the two notebooks.{" "}
-            <a
+            <Link
               href="/"
               className="text-accent underline-offset-2 hover:underline"
             >
               Pick your own URL
-            </a>{" "}
+            </Link>{" "}
             when you&apos;re ready to make a real one.
           </span>
         </div>
@@ -544,7 +545,7 @@ export function Editor() {
               ⌘K
             </span>
           </Button>
-          {!readOnly && supportsDeadman ? (
+          {!readOnly && !isDemoVault && supportsDeadman ? (
             <Button
               variant="secondary"
               size="sm"
@@ -554,7 +555,7 @@ export function Editor() {
               <Clock size={14} /> Handover
             </Button>
           ) : null}
-          {!readOnly ? (
+          {!readOnly && !isDemoVault ? (
             <Button
               variant="secondary"
               size="sm"
@@ -961,17 +962,17 @@ function TabBar({
               setDragFrom(null);
               setDragOver(null);
             }}
-            className={`${tabBase} ${tabTone} ${
+            className={`${tabBase} ${tabTone} cursor-pointer ${
               isDragSource ? "opacity-40" : ""
             } ${
               isDropTarget ? "ring-2 ring-accent/60" : ""
-            } ${canReorder ? "cursor-grab active:cursor-grabbing" : ""}`}
+            } ${canReorder ? "active:cursor-grabbing" : ""}`}
           >
             <button
               type="button"
               onClick={() => onSwitch(n.id)}
               onDoubleClick={() => !readOnly && onRequestRename(n.id)}
-              className="max-w-[180px] truncate text-left focus:outline-none"
+              className="max-w-[180px] cursor-pointer truncate text-left focus:outline-none"
               title={canReorder ? `${n.title} (drag to reorder)` : n.title}
             >
               {n.title}
@@ -985,7 +986,7 @@ function TabBar({
                     onRequestRename(n.id);
                   }}
                   aria-label="Rename notebook"
-                  className="ml-1 rounded p-1 text-muted/80 transition hover:bg-background-elev-2 hover:text-foreground focus:outline-none focus:ring-1 focus:ring-accent/60"
+                  className="ml-1 cursor-pointer rounded p-1 text-muted/80 transition hover:bg-background-elev-2 hover:text-foreground focus:outline-none focus:ring-1 focus:ring-accent/60"
                   title="Rename"
                 >
                   <Pencil size={12} />
@@ -998,7 +999,7 @@ function TabBar({
                       onRequestDelete(n.id);
                     }}
                     aria-label="Delete notebook"
-                    className="rounded p-1 text-muted/80 transition hover:bg-danger/15 hover:text-danger focus:outline-none focus:ring-1 focus:ring-danger/60"
+                    className="cursor-pointer rounded p-1 text-muted/80 transition hover:bg-danger/15 hover:text-danger focus:outline-none focus:ring-1 focus:ring-danger/60"
                     title="Delete"
                   >
                     <X size={14} strokeWidth={2.5} />
@@ -1014,7 +1015,7 @@ function TabBar({
           type="button"
           onClick={onAdd}
           aria-label="Add notebook"
-          className="inline-flex shrink-0 items-center gap-1 rounded-t-md border-2 border-dashed border-border/60 border-b-0 px-3 py-2 text-xs font-medium text-muted transition-colors hover:border-accent/60 hover:bg-background-elev hover:text-foreground"
+          className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-t-md border-2 border-dashed border-border/60 border-b-0 px-3 py-2 text-xs font-medium text-muted transition-colors hover:border-accent/60 hover:bg-background-elev hover:text-foreground"
           title="New notebook"
         >
           <Plus size={12} /> New

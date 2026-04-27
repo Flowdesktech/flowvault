@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   AlertTriangle,
   Check,
@@ -392,6 +393,15 @@ function PlaintextView({
           Decrypted locally in your browser. We never saw the plaintext.
         </p>
       )}
+      <div className="mt-5 rounded-xl border border-border bg-background-elev px-4 py-3 text-xs text-muted">
+        This was sent with Flowvault Encrypted Send. Need to send your own
+        password, API key, or recovery phrase without leaving it in chat
+        history?{" "}
+        <Link href="/send/new" className="text-accent hover:underline">
+          Create a self-destructing note
+        </Link>
+        .
+      </div>
     </Card>
   );
 }

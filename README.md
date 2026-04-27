@@ -24,6 +24,13 @@ There's also a public demo vault at **[useflowvault.com/s/demo](https://useflowv
 
 Same URL, same ciphertext blob on the server, two completely different screens. Lock the vault in between to feel it. The server rejects all writes at the demo URL — local edits only, nothing is saved or shared with the next visitor. Don't put real secrets in it anyway; it's a public walkthrough.
 
+## Moving from another tool?
+
+- **ProtectedText:** [modern ProtectedText alternative](https://useflowvault.com/alternatives/protectedtext) with Argon2id (64 MiB / 3 iter), AES-256-GCM, hidden-volume decoy passwords, and `.fvault` backups.
+- **Privnote / Bitwarden Send:** [Encrypted Send](https://useflowvault.com/alternatives/privnote) creates view-capped, expiring, self-destructing links for short secrets.
+- **Standard Notes / Notesnook:** [use Flowvault as the deniable scratchpad beside your main notes app](https://useflowvault.com/alternatives/standard-notes), not as a full PKM replacement.
+- **Plausible deniability:** [try the live use case](https://useflowvault.com/use-cases/plausible-deniability) with `CorrectPassword` and `DecoyPassword`.
+
 ## Is this the right tool for you?
 
 Flowvault is deliberately narrow. It's good at roughly two jobs and
@@ -58,6 +65,11 @@ honest about everything else.
 - **Cmd+K search, bounded by your session** &mdash; a command-palette (`Ctrl`/`Cmd` + `K`) that searches titles and content across every notebook you&rsquo;ve unlocked in this browser session. No persistent index, no server contact, no IndexedDB cache &mdash; the corpus is simply the plaintext already in memory. Slots whose password you haven&rsquo;t supplied stay invisible to it by construction; locking the vault drops the search surface with the bundle.
 - **Zero-knowledge `.fvault` backup + plaintext Markdown export** &mdash; portable across self-hosted instances, still opaque on disk. ([format spec](https://useflowvault.com/blog/encrypted-backup-fvault-format))
 - **Open end-to-end.** Frontend, Cloud Functions, and Firestore security rules all live in this repo. MIT-licensed. Self-hostable. ([vs ProtectedText](https://useflowvault.com/blog/flowvault-vs-protectedtext))
+
+Security and crypto review is welcome. Open a GitHub issue with the
+`security-review-wanted` or `crypto-review-wanted` template if you spot
+a threat-model gap, metadata leak, crypto invariant problem, or wording
+that overclaims what Flowvault can protect.
 
 Built with Next.js, Firebase Firestore (opaque ciphertext storage),
 Firebase Functions, and client-side Argon2id (64 MiB / 3 iter) +

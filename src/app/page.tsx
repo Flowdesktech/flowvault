@@ -243,6 +243,75 @@ export default function HomePage() {
           </div>
         </section>
 
+        <section className="mt-12 grid gap-4 md:grid-cols-2">
+          <div className="rounded-2xl border border-border bg-background-elev p-6">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-accent">
+              Moving from another tool?
+            </p>
+            <h2 className="mt-2 text-xl font-semibold tracking-tight">
+              Start from the job you already need done.
+            </h2>
+            <div className="mt-4 grid gap-2 text-sm">
+              <Link
+                href="/alternatives/protectedtext"
+                className="rounded-lg border border-border bg-background px-3 py-2 text-muted hover:border-accent/50 hover:text-foreground"
+              >
+                Coming from ProtectedText? Compare the migration path.
+              </Link>
+              <Link
+                href="/alternatives/privnote"
+                className="rounded-lg border border-border bg-background px-3 py-2 text-muted hover:border-accent/50 hover:text-foreground"
+              >
+                Need a Privnote or Bitwarden Send alternative?
+              </Link>
+              <Link
+                href="/alternatives/standard-notes"
+                className="rounded-lg border border-border bg-background px-3 py-2 text-muted hover:border-accent/50 hover:text-foreground"
+              >
+                Using Standard Notes? Keep it, add Flowvault beside it.
+              </Link>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-border bg-background-elev p-6">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-accent">
+              Trust model
+            </p>
+            <h2 className="mt-2 text-xl font-semibold tracking-tight">
+              Verify the claims, including the limitations.
+            </h2>
+            <ul className="mt-4 space-y-2 text-sm text-muted">
+              <li>
+                <Check size={14} className="mr-2 inline text-success" />
+                Argon2id (64 MiB, 3 iterations) + AES-256-GCM in the browser.
+              </li>
+              <li>
+                <Check size={14} className="mr-2 inline text-success" />
+                Open frontend, Cloud Functions, and Firestore rules.
+              </li>
+              <li>
+                <Check size={14} className="mr-2 inline text-success" />
+                Honest limits: browser-only, short slots, observable URL visits.
+              </li>
+            </ul>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm">
+              <Link href="/security" className="text-accent hover:underline">
+                Security page
+              </Link>
+              <a
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="text-accent hover:underline"
+              >
+                GitHub source
+              </a>
+              <Link href="/faq" className="text-accent hover:underline">
+                FAQ and limitations
+              </Link>
+            </div>
+          </div>
+        </section>
+
         <section className="mt-20 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <Feature
             icon={<ShieldCheck size={18} />}

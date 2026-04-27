@@ -16,6 +16,13 @@ import { POSTS } from "@/lib/blog/posts";
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   const base = APP_URL.replace(/\/$/, "");
+  const intentPages = [
+    "/alternatives/protectedtext",
+    "/alternatives/privnote",
+    "/alternatives/standard-notes",
+    "/use-cases/plausible-deniability",
+    "/use-cases/encrypted-send-password",
+  ];
   return [
     {
       url: `${base}/`,
@@ -65,6 +72,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.9,
     },
+    ...intentPages.map((path) => ({
+      url: `${base}${path}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
     ...POSTS.map((p) => ({
       url: `${base}/blog/${p.slug}`,
       lastModified: new Date(p.updatedAt ?? p.publishedAt),

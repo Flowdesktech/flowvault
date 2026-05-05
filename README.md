@@ -13,7 +13,13 @@ ever forced to; your real notebook stays invisible.
 
 ## See it in 30 seconds — live demo, no sign-up
 
-Prefer a video walkthrough? A 1-minute intro covering plausible deniability, time-locked notes, trusted handover, and Encrypted Send is on YouTube: **[youtu.be/wkoAIseRicY](https://youtu.be/wkoAIseRicY)**.
+A 1-minute intro covering plausible deniability, time-locked notes, trusted handover, and Encrypted Send (also on YouTube: **[youtu.be/wkoAIseRicY](https://youtu.be/wkoAIseRicY)**):
+
+<p align="center">
+  <video src="https://raw.githubusercontent.com/Flowdesktech/flowvault/master/public/video/intro.mp4" poster="https://raw.githubusercontent.com/Flowdesktech/flowvault/master/public/video/intro-poster.jpg" controls muted playsinline width="720">
+    Your browser doesn't support inline video. <a href="https://youtu.be/wkoAIseRicY">Watch on YouTube</a> instead.
+  </video>
+</p>
 
 There's also a public demo vault at **[useflowvault.com/s/demo](https://useflowvault.com/s/demo)** with two pre-loaded notebooks behind two different passwords, so you can see the hidden-volume design work before picking a password of your own:
 

@@ -13,11 +13,13 @@ ever forced to; your real notebook stays invisible.
 
 ## See it in 30 seconds — live demo, no sign-up
 
-A 1-minute intro covering plausible deniability, time-locked notes, trusted handover, and Encrypted Send (also on YouTube: **[youtu.be/wkoAIseRicY](https://youtu.be/wkoAIseRicY)**):
+A 1-minute intro covering plausible deniability, time-locked notes, trusted handover, and Encrypted Send — also on **[YouTube](https://youtu.be/wkoAIseRicY)** if the inline player below doesn't load:
 
 <p align="center">
-  <video src="https://raw.githubusercontent.com/Flowdesktech/flowvault/master/public/video/intro.mp4" poster="https://raw.githubusercontent.com/Flowdesktech/flowvault/master/public/video/intro-poster.jpg" controls muted playsinline width="720">
-    Your browser doesn't support inline video. <a href="https://youtu.be/wkoAIseRicY">Watch on YouTube</a> instead.
+  <video src="https://github.com/Flowdesktech/flowvault/releases/download/v1.4.0/intro.mp4" poster="https://raw.githubusercontent.com/Flowdesktech/flowvault/master/public/video/intro-poster.jpg" controls muted playsinline width="720">
+    <a href="https://youtu.be/wkoAIseRicY">
+      <img src="https://raw.githubusercontent.com/Flowdesktech/flowvault/master/public/video/intro-poster.jpg" alt="Flowvault 1-minute intro — click to watch on YouTube" width="720" />
+    </a>
   </video>
 </p>
 

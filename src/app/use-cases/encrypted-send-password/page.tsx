@@ -81,6 +81,24 @@ const page: IntentPageData = {
         </p>
       ),
     },
+    {
+      title: "Sending a credential file or screenshot",
+      body: (
+        <p>
+          Sometimes the secret <em>is</em> a file &mdash; a service-account
+          JSON, a backup keyfile, a screenshot of a config screen. For
+          those, use{" "}
+          <Link href="/file/new" className="text-accent hover:underline">
+            Encrypted File Send
+          </Link>{" "}
+          instead: same threat model, same URL-fragment-keyed AES-GCM,
+          plus a <em>secure delete link</em> you can keep on hand to
+          destroy the upload immediately if the channel turns out to be
+          compromised. Up to 10 MiB, default one download, max 7-day
+          expiry.
+        </p>
+      ),
+    },
   ],
   checklistTitle: "Password handoff checklist",
   checklist: [

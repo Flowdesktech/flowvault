@@ -5,9 +5,9 @@ import Link from "next/link";
 import { DONATE_PATH, APP_URL } from "@/lib/config";
 
 const FAQ_TITLE =
-  "FAQ — Flowvault: encrypted online notepad, Cmd+K in-memory search, Markdown preview, Bring-Your-Own-Storage local vaults, trusted handover to a beneficiary, time-locked notes, Encrypted Send, encrypted backup & restore; ProtectedText / Standard Notes / CryptPad / Privnote / Bitwarden Send alternative";
+  "FAQ — Flowvault: encrypted online notepad, Cmd+K in-memory search, Markdown preview, Bring-Your-Own-Storage local vaults, trusted handover to a beneficiary, time-locked notes, Encrypted Send, Encrypted File Send (10 MiB self-destructing file uploads with a secure delete link), encrypted backup & restore; ProtectedText / Standard Notes / CryptPad / Privnote / Bitwarden Send alternative";
 const FAQ_DESCRIPTION =
-  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how the Cmd+K command-palette search runs entirely in memory over the notebooks you've already unlocked (no persistent index, no server round-trip, deniability preserved), how the Markdown preview renders GitHub-flavored Markdown safely (HTML blocked, external images click-to-load, no-referrer links, syntax-highlighted code), how Bring-Your-Own-Storage local vaults keep the entire ciphertext on your own disk as a single .flowvault file, how the trusted handover releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, how Encrypted Send creates self-destructing one-time links with view caps and optional passwords, how zero-knowledge .fvault backup and restore let you migrate or self-host without decrypting anything server-side, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, OneTimeSecret, PrivateBin, Yopass, Notesnook, Joplin, Obsidian, Bitwarden Send, 1Password Share, and Skiff Notes.";
+  "Honest answers about Flowvault: how plausible-deniability hidden volumes work, how the Cmd+K command-palette search runs entirely in memory over the notebooks you've already unlocked (no persistent index, no server round-trip, deniability preserved), how the Markdown preview renders GitHub-flavored Markdown safely (HTML blocked, external images click-to-load, no-referrer links, syntax-highlighted code), how Bring-Your-Own-Storage local vaults keep the entire ciphertext on your own disk as a single .flowvault file, how the trusted handover releases a vault to a beneficiary if you stop checking in, how drand-backed time-locked notes keep messages sealed until a future date, how Encrypted Send creates self-destructing one-time links with view caps and optional passwords, how Encrypted File Send adds 10 MiB self-destructing file uploads with a separate secure delete link, how zero-knowledge .fvault backup and restore let you migrate or self-host without decrypting anything server-side, and how Flowvault compares to ProtectedText, Standard Notes, CryptPad, Privnote, OneTimeSecret, PrivateBin, Yopass, Notesnook, Joplin, Obsidian, Bitwarden Send, 1Password Share, and Skiff Notes.";
 
 export const metadata: Metadata = {
   title: FAQ_TITLE,
@@ -35,9 +35,14 @@ export const metadata: Metadata = {
     "drand tlock",
     "plausible deniability notes",
     "encrypted send",
+    "encrypted file send",
     "one-time secret link",
     "self-destructing note",
+    "self-destructing file upload",
+    "secure file sharing",
     "burn after reading",
+    "burn after download file",
+    "secure delete link",
     "encrypted notepad backup",
     "zero-knowledge backup file",
     "Flowvault backup",
@@ -1289,12 +1294,16 @@ const FEATURES: QA[] = [
     q: "Does Encrypted Send support files or just text?",
     a: (
       <>
-        Text only for now. Plaintext is capped at 128 KiB &mdash;
-        plenty for credentials, recovery phrases, configs, a long
-        paragraph of context. File attachments are on the roadmap and
-        would use Firebase Storage with a similar URL-fragment-keyed
-        wrap; they&rsquo;ll ship when we can do it without bloating
-        the threat model.
+        Encrypted Send itself is text-only (plaintext capped at
+        128&nbsp;KiB). For files, use the sibling{" "}
+        <Strong>Encrypted File Send</Strong> at{" "}
+        <Link href="/file/new" className="text-accent hover:underline">
+          /file/new
+        </Link>{" "}
+        &mdash; same threat model, same URL-fragment-keyed AES-GCM
+        wrap, but sized for documents and screenshots up to
+        10&nbsp;MiB. The encrypted bytes live in Cloud Storage rather
+        than Firestore. See the dedicated entries just below.
       </>
     ),
   },
@@ -1309,6 +1318,193 @@ const FEATURES: QA[] = [
         the document is gone, even if someone saved the URL they see
         &ldquo;not found&rdquo; &mdash; Flowvault has no backup of
         deleted sends.
+      </>
+    ),
+  },
+  {
+    q: "What is Encrypted File Send?",
+    a: (
+      <>
+        The file-shaped sibling of Encrypted Send. Drop a file at{" "}
+        <Link href="/file/new" className="text-accent hover:underline">
+          /file/new
+        </Link>{" "}
+        (up to <Strong>10&nbsp;MiB</Strong>), pick how long it lives
+        (max <Strong>7 days</Strong>) and how many times it can be
+        downloaded (default 1, up to 10), and you get back{" "}
+        <Strong>two</Strong> links:
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>
+            A <Strong>download link</Strong> for the recipient
+            (<Code>useflowvault.com/file/&lt;id&gt;#k=&lt;key&gt;</Code>).
+          </li>
+          <li>
+            A <Strong>secure delete link</Strong> for you to keep
+            (<Code>
+              useflowvault.com/file/&lt;id&gt;/delete#t=&lt;token&gt;
+            </Code>) &mdash; opening it lets you destroy the upload
+            immediately, before the cap or expiry.
+          </li>
+        </ul>
+        <p className="mt-3">
+          Optional password gate works the same way as Encrypted
+          Send. Read the{" "}
+          <Link
+            href="/blog/encrypted-file-send-zero-knowledge-uploads"
+            className="text-accent hover:underline"
+          >
+            File Send deep dive
+          </Link>{" "}
+          for the full protocol walkthrough.
+        </p>
+      </>
+    ),
+  },
+  {
+    q: "How is the file actually encrypted?",
+    a: (
+      <>
+        <p>
+          AES-256-GCM in your browser before any byte leaves your
+          device. The exact key tree:
+        </p>
+        <ol className="mt-2 list-decimal space-y-1 pl-5">
+          <li>
+            A random 256-bit key <Code>K</Code> is generated client-side.
+            It travels in the URL fragment (<Code>#k=…</Code>); browsers
+            never transmit fragments to servers.
+          </li>
+          <li>
+            If a password is set, an Argon2id key is derived from it
+            (64&nbsp;MiB / 3 iterations) and concatenated with{" "}
+            <Code>K</Code> to form the base material.
+          </li>
+          <li>
+            Two HKDF subkeys are derived: a{" "}
+            <Code>contentKey</Code> (used to AEAD-encrypt the file
+            bytes, uploaded to Cloud Storage) and a{" "}
+            <Code>metadataKey</Code> (used to AEAD-encrypt a small JSON
+            blob with the filename, MIME type, and size, stored in
+            Firestore).
+          </li>
+          <li>
+            A separate random 256-bit <Strong>delete token</Strong> is
+            generated. The server stores only its{" "}
+            <Strong>SHA-256 digest</Strong>; the raw token lives in
+            your secure delete link, so possession of the link is the
+            only thing that authorizes deletion.
+          </li>
+        </ol>
+        <p className="mt-3">
+          Direct reads on the Storage object and the Firestore
+          document are denied by rules. The only path to the bytes is{" "}
+          <Code>readFileSend</Code>, a Cloud Function that atomically
+          consumes a download in a Firestore transaction and returns a
+          5-minute v4 signed URL.
+        </p>
+      </>
+    ),
+  },
+  {
+    q: "What does the server actually see for a file send?",
+    a: (
+      <>
+        Same disclosure standard as the rest of Flowvault. The server
+        sees:
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>
+            The opaque ciphertext bytes in Cloud Storage at{" "}
+            <Code>fileSends/&lt;id&gt;</Code> (file size + 28 bytes of
+            AEAD overhead).
+          </li>
+          <li>
+            A small encrypted metadata blob in Firestore (server
+            can&apos;t open it).
+          </li>
+          <li>
+            Expiry, max downloads, current download count.
+          </li>
+          <li>
+            A boolean <Code>passwordProtected</Code> flag and, when
+            set, a 16-byte Argon2id salt &mdash; useless without the
+            password and the URL fragment.
+          </li>
+          <li>
+            The 32-byte SHA-256 of the delete token. Useless without
+            the original token.
+          </li>
+        </ul>
+        <p className="mt-3">
+          It does <em>not</em> see the filename, MIME type, file
+          content, AES key, password, delete token, or any account /
+          email / persistent identifier &mdash; because none exist.
+        </p>
+      </>
+    ),
+  },
+  {
+    q: "Can Flowvault delete a file send for me?",
+    a: (
+      <>
+        Two ways an upload gets removed, both server-side:
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>
+            The recipient consumes the final allowed download. The
+            Cloud Function deletes the Firestore doc immediately and
+            the scheduled <Code>fileSendsSweep</Code> drops the
+            Storage object on the next tick (after the 5-minute
+            signed-URL grace window expires).
+          </li>
+          <li>
+            The expiry passes. <Code>fileSendsSweep</Code> deletes
+            both the doc and the object on the next hourly run.
+          </li>
+        </ul>
+        <p className="mt-3">
+          You can also force an immediate delete yourself by opening
+          your <Strong>secure delete link</Strong>. The Cloud Function{" "}
+          <Code>deleteFileSend</Code> SHA-256s the token from your URL
+          fragment, compares it to the stored hash in constant-ish
+          time, and (on match) drops the Storage object plus the
+          Firestore document. We can&rsquo;t recover the upload after
+          that, and we can&rsquo;t do this on your behalf because we
+          never stored the raw token.
+        </p>
+      </>
+    ),
+  },
+  {
+    q: "Why 10 MiB and 7 days, exactly?",
+    a: (
+      <>
+        File Send is deliberately sized for documents and
+        screenshots, not large transfers. <Strong>10&nbsp;MiB</Strong>{" "}
+        is the cap because that&rsquo;s the line where browser
+        encryption + Cloud Function + signed-URL plumbing stays
+        snappy on a phone over 4G; above it the better tool is
+        Bitwarden Send Files, OnionShare, or Magic Wormhole.{" "}
+        <Strong>7 days</Strong> is the retention cap because, in
+        practice, almost every legitimate use case finishes within
+        72&nbsp;hours, and a hard ceiling reduces the window where a
+        forgotten upload can leak. The cap can be raised in a future
+        release, but it will stay scoped to ephemeral file transfer
+        rather than &ldquo;cloud storage.&rdquo;
+      </>
+    ),
+  },
+  {
+    q: "What if I lose the secure delete link?",
+    a: (
+      <>
+        Same answer as &ldquo;what if I lose my password&rdquo; for the
+        rest of Flowvault: we can&apos;t recover it. The server only
+        ever stored the SHA-256 of the delete token; the raw token
+        existed exactly once, in the link we showed you on the
+        success screen. Without it, the upload sits until the expiry
+        or the download cap is consumed and then gets swept. Treat
+        the secure delete link the same way you treat the download
+        link: copy it, save it somewhere you control, understand we
+        can&apos;t re-derive it later.
       </>
     ),
   },
@@ -1568,9 +1764,10 @@ const BYOS: QA[] = [
         corresponds to. Your browser never uploads the ciphertext or
         the file name to us. The one caveat is the editor chrome: if
         you use server-dependent features while a local vault is
-        open &mdash; time-locked notes composition, Encrypted Send
-        &mdash; those specific flows still talk to our backend for
-        their own documents (a time-locked capsule, a send record),
+        open &mdash; time-locked notes composition, Encrypted Send,
+        Encrypted File Send &mdash; those specific flows still talk
+        to our backend for their own documents (a time-locked
+        capsule, a send record, a file-send ciphertext object),
         same as they would from a hosted vault. They never see your
         local vault&apos;s plaintext or ciphertext.
       </>
@@ -1669,14 +1866,15 @@ const BYOS: QA[] = [
     ),
   },
   {
-    q: "What about time-locked notes and Encrypted Send from a local vault?",
+    q: "What about time-locked notes, Encrypted Send, and Encrypted File Send from a local vault?",
     a: (
       <>
         Those still work &mdash; they have nothing to do with where
-        your <em>vault</em> lives. Composing a time-locked note or an
-        Encrypted Send from the editor stores the one-shot capsule /
-        send document in our backend the same way as always; only the
-        notebook text lives in your local file.
+        your <em>vault</em> lives. Composing a time-locked note, an
+        Encrypted Send, or an Encrypted File Send from the editor
+        stores the one-shot capsule / send document / file ciphertext
+        in our backend the same way as always; only the notebook text
+        lives in your local file.
       </>
     ),
   },
@@ -1872,8 +2070,10 @@ const BACKUP: QA[] = [
     a: (
       <>
         Yes. The whole stack &mdash; Next.js frontend, Cloud Functions
-        (the trusted-handover release sweep and the Encrypted Send read
-        path), and Firestore security rules &mdash; is in one public
+        (the trusted-handover release sweep, the Encrypted Send /
+        File Send read &amp; delete paths, and the file-send sweep),
+        Cloud Storage rules, and Firestore security rules &mdash;
+        is in one public
         repository. Bring your own Firebase project, deploy the rules
         and Functions, point the frontend at it, and drop a{" "}
         <Code>.fvault</Code> file onto <Code>/restore</Code>. Because
@@ -2234,8 +2434,10 @@ export default function FAQPage() {
           already unlocked, Bring-Your-Own-Storage local vaults stored
           as a single <Code>.flowvault</Code> file on your device,
           the trusted handover to a beneficiary, drand-backed
-          time-locked notes, Encrypted Send, <Code>.fvault</Code>{" "}
-          encrypted backups and restore, and how Flowvault compares
+          time-locked notes, Encrypted Send, Encrypted File Send (10
+          MiB self-destructing file uploads with a separate secure
+          delete link), <Code>.fvault</Code> encrypted backups and
+          restore, and how Flowvault compares
           to ProtectedText, Standard Notes, CryptPad, and other
           alternatives. If yours isn&apos;t here, open an issue on
           GitHub.
@@ -2248,7 +2450,7 @@ export default function FAQPage() {
         />
         <Section title="Security" items={SECURITY} />
         <Section
-          title="Trusted handover & time-locked notes"
+          title="Trusted handover, time-locked notes, Encrypted Send & File Send"
           items={FEATURES}
         />
         <Section title="Using Flowvault" items={USAGE} />
@@ -2313,6 +2515,13 @@ export default function FAQPage() {
               className="text-accent hover:underline"
             >
               Encrypted Send vs Bitwarden Send vs Privnote
+            </Link>
+            , a deep dive on{" "}
+            <Link
+              href="/blog/encrypted-file-send-zero-knowledge-uploads"
+              className="text-accent hover:underline"
+            >
+              Encrypted File Send
             </Link>
             , the{" "}
             <Link

@@ -18,6 +18,9 @@ export const metadata: Metadata = {
     "self destructing note",
     "burn after reading note",
     "send password securely",
+    "self destructing file upload",
+    "encrypted file send",
+    "burn after download file",
   ],
   openGraph: {
     type: "website",
@@ -70,6 +73,24 @@ const page: IntentPageData = {
           vault instead of Encrypted Send. A send is intentionally disposable;
           a vault is for notes you want to reopen later, back up, or protect
           with a decoy password.
+        </p>
+      ),
+    },
+    {
+      title: "Need to share a file, not just text?",
+      body: (
+        <p>
+          Flowvault&apos;s sibling primitive,{" "}
+          <Link href="/file/new" className="text-accent hover:underline">
+            Encrypted File Send
+          </Link>
+          , does the same thing for documents and screenshots up to 10 MiB.
+          Same URL-fragment-keyed AES-GCM wrap, same view cap and password
+          options, plus a separate <em>secure delete link</em> you keep so
+          you can destroy the upload immediately if the channel turns out to
+          be untrusted. The encrypted bytes live in Cloud Storage; metadata
+          and counters live in Firestore; the server never sees the
+          filename, content, or the AES key.
         </p>
       ),
     },

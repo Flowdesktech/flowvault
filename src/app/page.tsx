@@ -707,7 +707,7 @@ export default function HomePage() {
             <Reason
               icon={<Send size={16} />}
               title="Self-destructing Encrypted Send"
-              body="A Bitwarden-Send / Privnote-style one-shot link, but account-less and open source end-to-end. The AES-256 key lives in the URL fragment (never reaches our servers), views are enforced by a Cloud Function that hard-deletes the bytes on the last read, and an optional password adds a second gate even if the link leaks."
+              body="A Bitwarden-Send / Privnote-style one-shot link, but account-less and open source end-to-end. The AES-256 key lives in the URL fragment (never reaches our servers), views are enforced by a Cloud Function that hard-deletes the bytes on the last read, and an optional password adds a second gate even if the link leaks. The same primitive ships in a 10-MiB file flavour at /file/new with a separate secure-delete link you keep, so you can revoke an upload before the recipient opens it."
             />
             <Reason
               icon={<Download size={16} />}
@@ -788,6 +788,12 @@ export default function HomePage() {
                 <Row
                   label="Self-destructing one-time notes"
                   ours="Yes (AES-256, URL-fragment key, server-enforced view count + TTL, optional password)"
+                  theirs={<X className="inline" size={14} />}
+                  oursGood
+                />
+                <Row
+                  label="Self-destructing one-time files"
+                  ours="Yes (Encrypted File Send: up to 10 MiB, URL-fragment key, server-enforced download count + TTL, optional password, separate secure delete link)"
                   theirs={<X className="inline" size={14} />}
                   oursGood
                 />
@@ -931,10 +937,17 @@ export default function HomePage() {
                 />
                 <SendRow
                   label="File attachments"
-                  ours="Text only (on the roadmap)"
+                  ours="Yes — sibling Encrypted File Send (up to 10 MiB; same URL-fragment-keyed AES-GCM, with a separate secure delete link)"
                   privnote="Text only"
                   bitwarden="Paid tier"
                   onepassword={<Check className="inline text-success" size={14} />}
+                />
+                <SendRow
+                  label="Sender-controlled kill switch (revoke before opening)"
+                  ours="Yes (File Send: secure delete link; Note Send: lower the view cap or expiry)"
+                  privnote={<X className="inline" size={14} />}
+                  bitwarden="Yes (Bitwarden account dashboard)"
+                  onepassword="Yes (1Password account dashboard)"
                 />
                 <SendRow
                   label="Price"

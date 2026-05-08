@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { APP_URL } from "@/lib/config";
 
 const SEC_TITLE =
-  "Security & threat model — Argon2id, AES-GCM, hidden volumes, drand tlock, Encrypted Send";
+  "Security & threat model — Argon2id, AES-GCM, hidden volumes, drand tlock, Encrypted Send, Encrypted File Send";
 const SEC_DESCRIPTION =
-  "Flowvault's threat model and crypto primitives: Argon2id key derivation, AES-256-GCM authenticated encryption, hidden-volume plausible deniability, a client-wrapped trusted handover to a beneficiary, drand-backed time-locked notes, and Encrypted Send self-destructing one-time links. Written honestly, with the limits spelled out.";
+  "Flowvault's threat model and crypto primitives: Argon2id key derivation, AES-256-GCM authenticated encryption, hidden-volume plausible deniability, a client-wrapped trusted handover to a beneficiary, drand-backed time-locked notes, Encrypted Send self-destructing one-time links, and Encrypted File Send (10 MiB self-destructing file uploads with a separate secure delete link). Written honestly, with the limits spelled out.";
 
 export const metadata: Metadata = {
   title: SEC_TITLE,
@@ -392,6 +393,113 @@ export default function SecurityPage() {
           semantics (overwritten in the index immediately;
           backup-retention per Firebase&apos;s own schedule); we do
           not operate additional snapshots.
+        </p>
+
+        <H2>Encrypted File Send</H2>
+        <p className="mt-2 text-muted">
+          Encrypted File Send is the file-shaped sibling of Encrypted
+          Send: same threat model, same URL-fragment-keyed AES-GCM
+          wrap, sized for documents and screenshots up to{" "}
+          <strong className="text-foreground">10&nbsp;MiB</strong>{" "}
+          with a hard{" "}
+          <strong className="text-foreground">7-day</strong> retention
+          ceiling. The encrypted file bytes live in Cloud Storage at{" "}
+          <Code>fileSends/&#123;id&#125;</Code>; metadata, counters,
+          and the secure-delete-token hash live in Firestore at the
+          same id.
+        </p>
+        <ol className="mt-3 list-decimal space-y-1 pl-5 text-muted">
+          <li>
+            <strong className="text-foreground">Outer encryption:</strong>{" "}
+            the browser generates a random 256-bit key{" "}
+            <Code>K</Code> and a separate random 256-bit{" "}
+            <Code>deleteToken</Code>. <Code>K</Code> goes into the
+            download URL fragment (<Code>#k=…</Code>); the
+            <Code>deleteToken</Code> goes into a separate secure
+            delete URL fragment (<Code>#t=…</Code>). Browsers never
+            transmit fragments, so the server sees neither.
+          </li>
+          <li>
+            <strong className="text-foreground">
+              Optional password layer:
+            </strong>{" "}
+            an Argon2id-derived key from the password (same 64&nbsp;MiB
+            / 3-iter parameters as the rest of the product) is
+            concatenated with <Code>K</Code> before HKDF. So both the
+            file content and the metadata blob require both the URL
+            fragment and the password to decrypt. A 16-byte salt is
+            stored alongside the document (the salt alone is useless
+            without the password).
+          </li>
+          <li>
+            <strong className="text-foreground">
+              Domain-separated subkeys:
+            </strong>{" "}
+            HKDF derives a <Code>contentKey</Code> (used to AEAD-encrypt
+            the file bytes, uploaded to Cloud Storage) and a separate{" "}
+            <Code>metadataKey</Code> (used to AEAD-encrypt a small JSON
+            blob with the original filename, MIME type, and size,
+            stored in Firestore). The viewer decrypts metadata first,
+            so a wrong-password / wrong-key failure surfaces before
+            burning bandwidth on the full ciphertext.
+          </li>
+          <li>
+            <strong className="text-foreground">
+              Server-enforced download cap:
+            </strong>{" "}
+            clients cannot read{" "}
+            <Code>fileSends/&#123;id&#125;</Code> documents and
+            cannot read the storage object directly &mdash; the
+            Firestore rules and the storage rules both deny it. A
+            download goes through the <Code>readFileSend</Code>{" "}
+            callable, which atomically validates expiry, increments{" "}
+            <Code>viewCount</Code> (or marks the doc consumed on the
+            final download), then issues a 5-minute v4 signed URL so
+            the browser can pull the bytes directly from Cloud
+            Storage. Two concurrent recipients on the last download
+            cannot both succeed.
+          </li>
+          <li>
+            <strong className="text-foreground">
+              Secure delete link (sender-controlled kill switch):
+            </strong>{" "}
+            the server only stores SHA-256 of the{" "}
+            <Code>deleteToken</Code>. The{" "}
+            <Code>deleteFileSend</Code> callable accepts a token from
+            the URL fragment, recomputes the digest in constant-ish
+            time, and on match deletes the storage object plus the
+            Firestore doc. Possession of the original delete link is
+            the only thing that authorizes destruction; we cannot
+            re-derive it because we never had it.
+          </li>
+          <li>
+            <strong className="text-foreground">TTL sweep:</strong> a
+            scheduled <Code>fileSendsSweep</Code> runs hourly and
+            cleans up three classes of stale state &mdash; expired
+            documents, documents marked consumed past the signed-URL
+            grace window, and orphan storage objects whose Firestore
+            companion never landed (failed creates). Storage rules
+            cap incoming uploads at 10&nbsp;MiB and require{" "}
+            <Code>application/octet-stream</Code> as a defensive
+            stop.
+          </li>
+        </ol>
+        <p className="mt-2 text-muted">
+          Limits and leaks we acknowledge: the server sees ciphertext
+          size (so encrypted file size leaks, the same way it does
+          for Bitwarden Send / OneTimeSecret), expiry, download
+          counters, the SHA-256 of the delete token, and (when
+          password mode is on) the Argon2id salt and a hint flag. It
+          does <em>not</em> see the filename, MIME type, file
+          content, AES key, password, or the raw delete token. The
+          deep dive at{" "}
+          <Link
+            href="/blog/encrypted-file-send-zero-knowledge-uploads"
+            className="text-accent hover:underline"
+          >
+            /blog/encrypted-file-send-zero-knowledge-uploads
+          </Link>{" "}
+          walks through the protocol with the exact source pointers.
         </p>
 
         <H2>Responsible disclosure</H2>

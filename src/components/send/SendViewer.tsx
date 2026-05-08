@@ -400,7 +400,11 @@ function PlaintextView({
         <Link href="/send/new" className="text-accent hover:underline">
           Create a self-destructing note
         </Link>
-        .
+        . Sending a file?{" "}
+        <Link href="/file/new" className="text-accent hover:underline">
+          Use Encrypted File Send
+        </Link>{" "}
+        (up to 10 MiB, with a separate secure delete link).
       </div>
     </Card>
   );

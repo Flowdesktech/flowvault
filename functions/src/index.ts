@@ -401,9 +401,15 @@ export const readFileSend = onCall(
           // Force a download header so curl / browsers don't try to
           // render it inline. The original filename is encrypted, so
           // we use a generic placeholder.
+          //
+          // Note: do NOT set `contentType` here. v4 signed URLs treat
+          // it as a required signed *request* header, which the
+          // browser's plain `fetch()` GET won't send — leading to a
+          // "MalformedSecurityHeader" 400. `responseDisposition`
+          // travels as a query parameter (response-content-disposition)
+          // and doesn't have that constraint.
           responseDisposition:
             'attachment; filename="flowvault-encrypted.bin"',
-          contentType: "application/octet-stream",
         });
       downloadUrl = signed;
     } catch (err) {

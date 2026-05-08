@@ -1,0 +1,22 @@
+[
+  {
+    "origin": [
+      "https://useflowvault.com",
+      "https://www.useflowvault.com",
+      "https://flowvault.flowdesk.tech",
+      "https://flowvault-cf9f2.web.app",
+      "https://flowvault-cf9f2.firebaseapp.com",
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://127.0.0.1:3000"
+    ],
+    "method": ["GET", "HEAD"],
+    "responseHeader": [
+      "Content-Type",
+      "Content-Length",
+      "Content-Disposition",
+      "X-Goog-Meta-Foo"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

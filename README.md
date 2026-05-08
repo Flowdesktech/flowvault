@@ -207,10 +207,31 @@ npx firebase emulators:start --only firestore,functions,storage
 >    role on itself** (`roles/iam.serviceAccountTokenCreator`), so
 >    `readFileSend` can sign v4 download URLs. Without this, the
 >    function falls through to an `internal` error on the first call.
->    Same gcloud shape, on the *runtime* service account
->    (`<project-number>-compute@developer.gserviceaccount.com` for
->    v2 Cloud Functions), with itself as both `--member` and the
->    target.
+>    The runtime SA on a v2 Cloud Functions deploy is usually
+>    `<project-number>-compute@developer.gserviceaccount.com`;
+>    confirm with
+>    `gcloud functions describe readFileSend --gen2 --region=us-central1 --format='value(serviceConfig.serviceAccountEmail)'`.
+>    The role must be bound on the SA *resource*, not at the project
+>    level &mdash; use `gcloud iam service-accounts add-iam-policy-binding`
+>    (singular `service-accounts`), not `gcloud projects ...`:
+>    ```bash
+>    SA=<runtime-sa-email>
+>    gcloud iam service-accounts add-iam-policy-binding "$SA" \
+>      --member="serviceAccount:$SA" \
+>      --role="roles/iam.serviceAccountTokenCreator"
+>    ```
+> 4. **Set CORS on the Storage bucket** so the browser can fetch
+>    signed-URL ciphertext. `firebase deploy` handles `storage.rules`
+>    but not bucket-level CORS; apply once with:
+>    ```bash
+>    gcloud storage buckets update gs://<bucket-name> \
+>      --cors-file=storage.cors.json
+>    ```
+>    Without this, browser downloads fail with `ERR_FAILED 400` /
+>    `Failed to fetch`. The committed `storage.cors.json` allows the
+>    canonical app origin, the Firebase Hosting domains, and
+>    localhost; expand it if you serve File Send from a different
+>    host.
 
 ## Firestore schema (summary)
 

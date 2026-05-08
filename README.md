@@ -182,12 +182,35 @@ npx firebase emulators:start --only firestore,functions,storage
 ```
 
 > **Encrypted File Send setup:** the feature uses Firebase Cloud
-> Storage in addition to Firestore. Make sure Storage is enabled on
-> the project, and grant the Cloud Functions runtime service account
-> the **Service Account Token Creator** role on itself
-> (`roles/iam.serviceAccountTokenCreator`) so `readFileSend` can sign
-> v4 download URLs. Without this, the function falls through to an
-> `internal` error on the first call.
+> Storage in addition to Firestore. Three one-time setup steps are
+> required before the first deploy will succeed:
+>
+> 1. **Provision the default Storage bucket.** Open
+>    `https://console.firebase.google.com/project/<project-id>/storage`
+>    → **Get started** → pick a region (match your Firestore region
+>    when you can). Without this, `firebase deploy --only storage`
+>    fails with `Permission 'firebasestorage.defaultBucket.get' denied`
+>    or `defaultBucket … may not exist`. The CLI cannot create the
+>    default bucket itself; the console flow is required once.
+> 2. **Grant the deploy service account the Firebase Storage role.**
+>    Add `roles/firebasestorage.admin` (or the broader
+>    `roles/storage.admin`) to whatever service account is in your
+>    `FIREBASE_SERVICE_ACCOUNT` GitHub secret &mdash; the
+>    Firebase Rules Admin role alone is not sufficient to look up the
+>    default bucket configuration. Quickest path:
+>    ```bash
+>    gcloud projects add-iam-policy-binding <project-id> \
+>      --member="serviceAccount:<deploy-sa-email>" \
+>      --role="roles/firebasestorage.admin"
+>    ```
+> 3. **Grant the Functions runtime service account the Token Creator
+>    role on itself** (`roles/iam.serviceAccountTokenCreator`), so
+>    `readFileSend` can sign v4 download URLs. Without this, the
+>    function falls through to an `internal` error on the first call.
+>    Same gcloud shape, on the *runtime* service account
+>    (`<project-number>-compute@developer.gserviceaccount.com` for
+>    v2 Cloud Functions), with itself as both `--member` and the
+>    target.
 
 ## Firestore schema (summary)
 
@@ -278,7 +301,7 @@ Required repository **secrets** (Settings → Secrets and variables → Actions)
 
 | Secret                                     | Purpose                                                                                                                                                                                      |
 | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `FIREBASE_SERVICE_ACCOUNT`                 | Full JSON of a service account with roles: Cloud Functions Admin, Firebase Rules Admin, Service Account User, Cloud Datastore Index Admin, and (first deploy only) Artifact Registry Writer. |
+| `FIREBASE_SERVICE_ACCOUNT`                 | Full JSON of a service account with roles: Cloud Functions Admin, Firebase Rules Admin, Firebase Storage Admin, Service Account User, Cloud Datastore Index Admin, and (first deploy only) Artifact Registry Writer. |
 | `NEXT_PUBLIC_FIREBASE_API_KEY`             | Public client config — also configured in Vercel, duplicated here so CI builds succeed.                                                                                                      |
 | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`         | same                                                                                                                                                                                         |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID`          | same                                                                                                                                                                                         |

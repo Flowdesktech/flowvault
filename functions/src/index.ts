@@ -407,8 +407,28 @@ export const readFileSend = onCall(
         });
       downloadUrl = signed;
     } catch (err) {
-      logger.error("readFileSend: signed URL generation failed", err);
-      throw new HttpsError("internal", "could not issue download URL");
+      // The single most common failure here is the runtime service
+      // account lacking `roles/iam.serviceAccountTokenCreator` on
+      // itself — getSignedUrl falls through to signBlob, which 403s.
+      // Surface the underlying error message so the operator can
+      // tell `signBlob denied` from a transient Storage outage in
+      // a single log line, without flipping on debug logging.
+      const msg = err instanceof Error ? err.message : String(err);
+      const isPermission =
+        /signBlob|iam\.serviceAccounts/i.test(msg);
+      logger.error(
+        `readFileSend: signed URL generation failed (${
+          isPermission
+            ? "missing roles/iam.serviceAccountTokenCreator on the runtime SA"
+            : "unknown"
+        }): ${msg}`,
+      );
+      throw new HttpsError(
+        "internal",
+        isPermission
+          ? "download URL signing not configured"
+          : "could not issue download URL",
+      );
     }
 
     const passwordSaltBase64 = data.passwordProtected

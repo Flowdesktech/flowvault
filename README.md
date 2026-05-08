@@ -50,6 +50,7 @@ honest about everything else.
 - A place for notes you'd rather not be associated with: recovery phrases, wallet seeds, medical info, contact details for sensitive relationships, things you'd hand over a *decoy* password for at a border crossing.
 - A modern ProtectedText replacement with stronger crypto, hidden volumes, and an open backend you can self-host.
 - A one-shot self-destructing link (**Encrypted Send**) to share a password or API key without making the recipient sign up for Bitwarden or 1Password first.
+- A one-shot self-destructing **file** upload (**Encrypted File Send**) for sharing up to 10 MiB &mdash; recovery key files, signed PDFs, screenshots of secrets &mdash; with a separate *secure delete link* you can fire any time before it expires.
 - To keep the ciphertext off our servers entirely &mdash; same app, but the vault lives as a single `.flowvault` file on your own disk (**Bring Your Own Storage**).
 
 **Pick something else if:**
@@ -68,6 +69,7 @@ honest about everything else.
 - **Trusted handover** &mdash; nominate a beneficiary with a separate password; if you stop checking in for an interval you configure, the vault auto-hands over. No account required for either party. ([deep dive](https://useflowvault.com/blog/trusted-handover-encrypted-notes-beneficiary))
 - **Time-locked notes** &mdash; drand + tlock identity-based encryption, so even the sender can&rsquo;t decrypt a message before its target date. ([deep dive](https://useflowvault.com/blog/time-locked-notes-drand-tlock))
 - **Encrypted Send** &mdash; one-shot, self-destructing links for sharing a password or recovery phrase. Key in the URL fragment, view cap enforced server-side by a Cloud Function. ([vs Bitwarden Send / Privnote](https://useflowvault.com/blog/encrypted-send-vs-bitwarden-send-privnote))
+- **Encrypted File Send** &mdash; same shape as Encrypted Send, but for files up to 10 MiB. Pick an expiry (max 7 days) and a download cap (default 1); the encrypted ciphertext lives in Cloud Storage and is hard-deleted the moment the last download is consumed. The sender also gets a separate **secure delete link** (a token bound to the upload by SHA-256) so they can destroy it before the cap or expiry. Optional password gate, just like Encrypted Send.
 - **Bring Your Own Storage** &mdash; keep the whole ciphertext on your own disk as a single `.flowvault` file via the File System Access API. Same hidden-volume format, same Argon2id + AES-GCM, same multi-notebook tabs &mdash; the server just never sees the blob. S3-compatible and WebDAV backends are on the roadmap.
 - **Markdown preview &amp; syntax-highlighted code blocks** &mdash; GitHub-flavored Markdown (tables, task lists, fenced code) renders in-browser with a toggleable Edit / Preview / Split view. HTML is blocked by default, external images are click-to-load, and external links use `no-referrer` &mdash; a preview that can&rsquo;t quietly exfiltrate your vault contents. ([deep dive](https://useflowvault.com/blog/markdown-preview-code-highlighting))
 - **Cmd+K search, bounded by your session** &mdash; a command-palette (`Ctrl`/`Cmd` + `K`) that searches titles and content across every notebook you&rsquo;ve unlocked in this browser session. No persistent index, no server contact, no IndexedDB cache &mdash; the corpus is simply the plaintext already in memory. Slots whose password you haven&rsquo;t supplied stay invisible to it by construction; locking the vault drops the search surface with the bundle.
@@ -124,6 +126,7 @@ nearly every dimension that matters for a zero-knowledge notepad.
 - **Multi-notebook tabs** — each password now unlocks a *workspace*, not just one page. Add tabs, rename them, reorder them, delete them. Everything lives inside the same encrypted slot, so the tab list, titles, and contents are all zero-knowledge — the server sees one opaque blob, same as always. Decoy passwords get their own independent tab set in their own slot; adding tabs in your real notebook doesn't touch the decoy and vice versa.
 - **Time-locked notes** — encrypt a message to a future date using the [drand](https://drand.love) public randomness beacon and the [tlock](https://github.com/drand/tlock-js) scheme (identity-based encryption over BLS12-381). The ciphertext is stored opaquely; the decryption key literally does not exist until drand's network publishes the target round signature. Nobody — not us, not the sender, not a subpoena — can unlock it early. Share links look like `useflowvault.com/t/<id>`. **Optional password gate:** tick *"Also require a password to read"* and the note is double-wrapped — an inner AES-256-GCM layer keyed by Argon2id(password), and an outer tlock layer keyed to the unlock round. Leaked link alone can't read it; the reader needs both the time to pass and the password (shared out-of-band).
 - **Encrypted Send** — one-shot, self-destructing notes for sharing a password, an API key, a recovery phrase, or any snippet you'd rather not sit in chat history. AES-256-GCM encrypted in the browser; the 256-bit key travels in the URL fragment (`#k=...`), which browsers never send to servers. Pick an expiry (up to 30 days) and a view count (default 1); the server hard-deletes the ciphertext the moment the last view is consumed, and a scheduled sweep removes anything past its TTL. Reads go through a Cloud Function so the view counter is atomic — clients can't read the document directly (rules deny it). **Optional password gate** on top, using the same FVPW frame as time-locks, so even a leaked link needs an out-of-band password. Share links look like `useflowvault.com/send/<id>#k=<key>`.
+- **Encrypted File Send** — same threat model as Encrypted Send, but for actual files. Drop a file (up to 10 MiB), pick an expiry (max 7 days) and a download cap (default 1, max 10), and you get back two links: a *download link* to share with the recipient (`useflowvault.com/file/<id>#k=<key>`) and a *secure delete link* to keep for yourself (`useflowvault.com/file/<id>/delete#t=<token>`). The file bytes are AES-256-GCM encrypted in the browser; the ciphertext lives in Cloud Storage and the metadata (filename, type, size) is encrypted into a small AEAD blob in Firestore. A Cloud Function atomically consumes a download by issuing a short-lived (5 min) v4 signed URL, deletes the document on the final download, and the scheduled `fileSendsSweep` purges expired or consumed objects (plus orphan-uploads from failed creates). The secure delete is authorized by SHA-256-matching a 256-bit token — the server never stored the token, so possession of the original delete link is the proof. Optional password gate is the same Argon2id-derived layer as Encrypted Send, mixed into HKDF so an attacker who steals the URL still needs an out-of-band password.
 - **Bring Your Own Storage (BYOS) — local `.flowvault` files.** Prefer not to leave even ciphertext on a server? Create a vault that lives as a single file on your own disk (`D:\notes\journal.flowvault`, an encrypted external drive, whatever you like). The editor opens the file via the File System Access API and reads/writes ciphertext in place; our backend never sees the blob or the file name. The on-disk format is a small JSON header (UUID, Argon2id salt, KDF params, volume layout, monotonic CAS counter) followed by the raw fixed-size hidden-volume blob — byte-for-byte the same ciphertext that would live in Firestore for a hosted vault. Multi-notebook tabs, decoy passwords, and `.fvault` backup/plaintext-Markdown export all work the same; trusted handover is disabled for local vaults because it needs a server-held scheduler. Chromium-based browsers only for now (Chrome, Edge, Brave, etc.); S3-compatible (R2, B2, MinIO) and WebDAV backends are on the roadmap — [open an issue](https://github.com/Flowdesktech/flowvault/issues/new) if one of those would unblock you.
 - **Trusted handover** — nominate a beneficiary and a check-in cadence. If you stop saving for the interval + grace you configure, the vault auto-hands over to a pre-chosen beneficiary password. Weekly / monthly / quarterly / yearly presets. The beneficiary key wraps your master key client-side; the server just schedules the release. Hourly Cloud Function sweeps expired configs; the Firestore rules forbid clients from faking a release or extending one they can't actually open.
 - **Markdown preview with security-first defaults.** Notes render as GitHub-flavored Markdown in-browser: tables, task lists, strikethrough, autolinks, fenced code blocks with Prism syntax highlighting for every common language. A segmented toggle in the toolbar flips between Edit / Preview / Split; the mode preference persists per device in `localStorage` (not in the encrypted blob, so you don't burn bytes of your 512 KiB slot on UI state). The preview is deliberately unusual: **raw HTML is blocked** (`<script>`, `<iframe>`, arbitrary tags render as literal text), **external images are click-to-load** with a placeholder showing the URL (so `![](https://attacker/pixel?v=target)` can't silently phone home the moment your vault opens), and **external links open with `target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer"`** so the destination site never learns where the referrer was. Code highlighting runs locally via `prism-react-renderer` &mdash; no network request, no WASM, no remote theme fetch. The renderer bundle itself is lazy-loaded via `next/dynamic`, so users who live in Edit mode never download it.
@@ -166,7 +169,7 @@ cp .env.local.example .env.local
 # Fill in NEXT_PUBLIC_FIREBASE_* values from the Firebase console.
 
 # 3. Deploy the security rules (requires firebase-tools)
-npx firebase deploy --only firestore:rules
+npx firebase deploy --only firestore:rules,storage
 
 # 4. Run locally
 npm run dev
@@ -175,8 +178,16 @@ npm run dev
 To exercise the Firebase emulators instead of deploying:
 
 ```bash
-npx firebase emulators:start --only firestore,functions
+npx firebase emulators:start --only firestore,functions,storage
 ```
+
+> **Encrypted File Send setup:** the feature uses Firebase Cloud
+> Storage in addition to Firestore. Make sure Storage is enabled on
+> the project, and grant the Cloud Functions runtime service account
+> the **Service Account Token Creator** role on itself
+> (`roles/iam.serviceAccountTokenCreator`) so `readFileSend` can sign
+> v4 download URLs. Without this, the function falls through to an
+> `internal` error on the first call.
 
 ## Firestore schema (summary)
 
@@ -189,9 +200,27 @@ sites/{siteId}
   version:     number        # CAS counter
   createdAt:   Timestamp
   updatedAt:   Timestamp
+
+fileSends/{id}                # Encrypted File Send metadata
+  storagePath:        string  # "fileSends/{id}" — points at the Storage object
+  ciphertextSize:     number  # bytes in the Storage object (≤ 10 MiB + AEAD overhead)
+  metadataCiphertext: bytes   # small AEAD blob: { name, contentType, size }
+  expiresAt:          Timestamp
+  maxViews:           number  # 1..10
+  viewCount:          number  # bumped by readFileSend (Admin SDK only)
+  deleteTokenHash:    bytes   # SHA-256 of the 256-bit secure-delete token
+  passwordProtected?: bool
+  passwordSalt?:      bytes   # 16 bytes when password gate is enabled
+  consumedAt?:        Timestamp # set on the final download; sweeper drops the object
+  createdAt:          Timestamp
 ```
 
-See `firestore.rules` for the complete zero-knowledge rule set.
+The File Send ciphertext itself lives in **Cloud Storage** at
+`fileSends/{id}`; `storage.rules` denies client reads (only Admin SDK
+can sign URLs) and caps uploads at 10 MiB with `application/octet-stream`.
+
+See `firestore.rules` and `storage.rules` for the complete
+zero-knowledge rule set.
 
 ## Security & threat model
 
@@ -211,6 +240,7 @@ Shipped:
 - Trusted handover: configure / heartbeat-on-save / scheduled release / beneficiary unlock flow
 - drand-backed time-locked notes (`/timelock/new` compose → `/t/{id}` view) via [tlock-js](https://github.com/drand/tlock-js)
 - Encrypted Send: one-shot, self-destructing notes (`/send/new` → `/send/{id}#k=<key>`)
+- Encrypted File Send: one-shot, self-destructing file uploads up to 10 MiB with a secure delete link (`/file/new` → `/file/{id}#k=<key>` + `/file/{id}/delete#t=<token>`)
 - Multi-notebook tabs per slot — one password, many tabs, all inside the same encrypted blob
 - Encrypted backup/restore (`.fvault`) + plaintext Markdown export for migration
 - Bring Your Own Storage — local `.flowvault` vault files via the File System Access API (first non-Firestore adapter)
@@ -237,10 +267,11 @@ production build for both the Next.js app and the Cloud Functions
 workspace. Catches regressions before they reach either Vercel or
 Firebase.
 - `deploy-firebase.yml` — runs on pushes to `master` that touch
-`functions/`**, `firestore.rules`, `firestore.indexes.json`, or
-`firebase.json` (plus a manual `workflow_dispatch`). Builds the
-Functions, authenticates with a service account, and runs
-`firebase deploy --only functions,firestore:rules,firestore:indexes`.
+`functions/`**, `firestore.rules`, `firestore.indexes.json`,
+`storage.rules`, or `firebase.json` (plus a manual
+`workflow_dispatch`). Builds the Functions, authenticates with a
+service account, and runs
+`firebase deploy --only functions,firestore:rules,firestore:indexes,storage`.
 
 Required repository **secrets** (Settings → Secrets and variables → Actions):
 

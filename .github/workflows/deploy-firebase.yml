@@ -2,8 +2,9 @@ name: Deploy Firebase backend
 
 # Vercel handles the Next.js frontend via its GitHub integration.
 # This workflow covers what Vercel does NOT: the Firebase side of the
-# stack — Cloud Functions (dead-man's-switch sweep), Firestore security
-# rules, and Firestore indexes. It runs on every push to master plus a
+# stack — Cloud Functions (dead-man's-switch sweep, send/file-send
+# readers and sweepers), Firestore security rules, Firestore indexes,
+# and Cloud Storage rules. It runs on every push to master plus a
 # manual dispatch button.
 #
 # Required repository secrets:
@@ -30,6 +31,7 @@ on:
       - "functions/**"
       - "firestore.rules"
       - "firestore.indexes.json"
+      - "storage.rules"
       - "firebase.json"
       - ".firebaserc"
       - ".github/workflows/deploy-firebase.yml"
@@ -38,7 +40,7 @@ on:
       targets:
         description: "Comma-separated deploy targets"
         required: false
-        default: "functions,firestore:rules,firestore:indexes"
+        default: "functions,firestore:rules,firestore:indexes,storage"
 
 concurrency:
   group: deploy-firebase-${{ github.ref }}
@@ -104,17 +106,25 @@ jobs:
             --non-interactive --force
 
       - name: Deploy Firestore indexes
-        if: contains(github.event.inputs.targets || 'functions,firestore:rules,firestore:indexes', 'firestore:indexes')
+        if: contains(github.event.inputs.targets || 'functions,firestore:rules,firestore:indexes,storage', 'firestore:indexes')
         run: |
           npx --yes firebase-tools@latest deploy \
             --only firestore:indexes \
             ${{ steps.project.outputs.flags }} \
             --non-interactive --force
 
+      - name: Deploy Storage rules
+        if: contains(github.event.inputs.targets || 'functions,firestore:rules,firestore:indexes,storage', 'storage')
+        run: |
+          npx --yes firebase-tools@latest deploy \
+            --only storage \
+            ${{ steps.project.outputs.flags }} \
+            --non-interactive --force
+
       # Functions is last and allowed to fail without taking the whole workflow
       # down, so the rules/indexes changes above still count as "shipped".
       - name: Deploy Cloud Functions
-        if: contains(github.event.inputs.targets || 'functions,firestore:rules,firestore:indexes', 'functions')
+        if: contains(github.event.inputs.targets || 'functions,firestore:rules,firestore:indexes,storage', 'functions')
         continue-on-error: true
         run: |
           npx --yes firebase-tools@latest deploy \

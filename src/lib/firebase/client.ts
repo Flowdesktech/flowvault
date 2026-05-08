@@ -8,6 +8,7 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getFunctions, type Functions } from "firebase/functions";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -23,6 +24,7 @@ const REGION = process.env.NEXT_PUBLIC_FIREBASE_REGION ?? "us-central1";
 let _app: FirebaseApp | null = null;
 let _db: Firestore | null = null;
 let _fn: Functions | null = null;
+let _storage: FirebaseStorage | null = null;
 
 export function getFirebaseApp(): FirebaseApp {
   if (_app) return _app;
@@ -45,4 +47,10 @@ export function fn(): Functions {
   if (_fn) return _fn;
   _fn = getFunctions(getFirebaseApp(), REGION);
   return _fn;
+}
+
+export function storage(): FirebaseStorage {
+  if (_storage) return _storage;
+  _storage = getStorage(getFirebaseApp());
+  return _storage;
 }

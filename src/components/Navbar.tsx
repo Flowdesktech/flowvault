@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { Vault, Heart, Briefcase, Clock, Send, BookOpen } from "lucide-react";
+import {
+  Vault,
+  Heart,
+  Briefcase,
+  Clock,
+  Send,
+  BookOpen,
+  FileLock2,
+} from "lucide-react";
 import { CONTACT_EMAIL, DONATE_PATH, GITHUB_URL } from "@/lib/config";
 
 export function Navbar() {
@@ -24,6 +32,14 @@ export function Navbar() {
               title="Send a self-destructing encrypted note"
             >
               <Send size={14} /> <span className="hidden sm:inline">Send</span>
+            </Link>
+            <Link
+              href="/file/new"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:text-foreground"
+              title="Send a self-destructing encrypted file"
+            >
+              <FileLock2 size={14} />{" "}
+              <span className="hidden sm:inline">File</span>
             </Link>
             <Link
               href="/timelock/new"

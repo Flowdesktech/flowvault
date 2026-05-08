@@ -9,6 +9,7 @@ import FvaultFormat from "@/content/blog/encrypted-backup-fvault-format";
 import FlowvaultVsProtectedText from "@/content/blog/flowvault-vs-protectedtext";
 import BringYourOwnStorage from "@/content/blog/bring-your-own-storage-local-vaults";
 import MarkdownPreviewCodeHighlighting from "@/content/blog/markdown-preview-code-highlighting";
+import EncryptedFileSend from "@/content/blog/encrypted-file-send-zero-knowledge-uploads";
 
 /**
  * Public blog index. Every post is a TSX component (lives under
@@ -304,6 +305,39 @@ const POSTS_UNSORTED: BlogPost[] = [
     ],
     readMinutes: 10,
     Body: MarkdownPreviewCodeHighlighting,
+  },
+  {
+    slug: "encrypted-file-send-zero-knowledge-uploads",
+    title:
+      "Encrypted File Send: 10 MiB self-destructing file uploads with a secure delete link",
+    subtitle:
+      "Drop a file, pick an expiry and a download cap, get back a download link plus a separate secure delete link. AES-256-GCM in your browser, ciphertext only on our storage, SHA-256-bound delete authorization.",
+    description:
+      "How Flowvault's Encrypted File Send works end-to-end: AES-256-GCM file encryption in the browser with HKDF-derived content / metadata subkeys, optional Argon2id password gate, Cloud Storage for ciphertext, signed-URL downloads atomically gated by a Cloud Function, a separate secure delete link bound by SHA-256, and a 7-day max retention with hourly sweeps for expired and orphan uploads.",
+    excerpt:
+      "Flowvault 1.5 ships an Encrypted File Send: drop a file (up to 10 MiB), pick how long it lives (max 7 days) and how many times it can be downloaded, share the link, and keep the separate secure delete link in your back pocket so you can destroy the upload at any moment. Here's exactly how it works.",
+    publishedAt: "2026-05-08",
+    tags: ["feature", "crypto"],
+    keywords: [
+      "encrypted file send",
+      "self destructing file upload",
+      "secure file sharing",
+      "send file with password",
+      "burn after download file",
+      "zero knowledge file transfer",
+      "encrypted file link",
+      "secure delete link",
+      "bitwarden send files alternative",
+      "onionshare alternative web",
+      "hat.sh alternative",
+      "firefox send replacement",
+      "ephemeral encrypted upload",
+      "browser-encrypted file upload",
+      "flowvault file send",
+      "flowvault v1.5",
+    ],
+    readMinutes: 11,
+    Body: EncryptedFileSend,
   },
 ];
 

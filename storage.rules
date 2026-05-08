@@ -1,0 +1,33 @@
+rules_version = '2';
+
+// Cloud Storage rules for Flowvault.
+//
+// Today the only thing in this bucket is the ciphertext blob for File
+// Send (fileSends/{id}). Everything else lives in Firestore.
+//
+// Reads are denied to clients: the readFileSend Cloud Function uses
+// the Admin SDK (which bypasses these rules) to either issue a
+// short-lived signed URL or stream the bytes back, while atomically
+// consuming a view in Firestore. Direct reads would let recipients
+// burn views silently or skip the view counter entirely.
+//
+// Writes (uploads) are allowed without auth so the app can stay
+// account-less, but the size cap is enforced here at the storage
+// boundary. Stale uploads with no matching Firestore doc are cleaned
+// up by the fileSendsSweep scheduled function.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /fileSends/{id} {
+      allow read: if false;
+      allow create: if request.resource.size > 0
+                 && request.resource.size <= 10 * 1024 * 1024
+                 && id.matches('^[A-Za-z0-9_-]{8,64}$')
+                 && request.resource.contentType == 'application/octet-stream';
+      allow update, delete: if false;
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

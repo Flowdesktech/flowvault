@@ -359,11 +359,19 @@ Max plaintext payload       128 KiB     ~5 MB       very small large      large 
         so one URL covers most secret-handling needs.
       </P>
 
-      <H3 id="large-file">For large file transfer</H3>
+      <H3 id="large-file">For files (small to large)</H3>
       <P>
-        Use Bitwarden Send (up to 100 MB free, 500 MB paid) or
-        Firefox Send alternatives (Hat.sh, OnionShare). Flowvault,
-        Privnote, and PrivateBin are text-sized.
+        For documents and screenshots up to 10&nbsp;MiB, Flowvault now
+        ships{" "}
+        <A href="/blog/encrypted-file-send-zero-knowledge-uploads">
+          Encrypted File Send
+        </A>{" "}
+        with the same shape as the text Send (URL-fragment key,
+        server-enforced cap, optional password) plus a separate
+        secure delete link the sender keeps for themselves. For
+        larger payloads, Bitwarden Send Files (up to 500&nbsp;MB),
+        OnionShare, or Magic Wormhole are the right tools &mdash;
+        Privnote and PrivateBin remain text-sized.
       </P>
 
       <H2 id="specific-gotchas">

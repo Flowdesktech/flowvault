@@ -44,6 +44,19 @@ service cloud.firestore {
       allow create: if isValidSend(request.resource.data);
       allow update, delete: if false;  // No client mutations after creation.
     }
+
+    // File Send: short-lived, view-capped one-way file uploads (up to
+    // 10 MiB, max 7-day retention). Same pattern as Encrypted Send: the
+    // file ciphertext lives in Cloud Storage at fileSends/{id}; this
+    // Firestore document carries the encrypted metadata, expiry, view
+    // counters, password salt, and the SHA-256 of the secure-delete
+    // token. Direct reads are denied; readFileSend / deleteFileSend
+    // (Admin SDK) are the only paths.
+    match /fileSends/{fileSendId} {
+      allow read: if false;            // Only readFileSend (Admin SDK) reads these.
+      allow create: if isValidFileSend(request.resource.data);
+      allow update, delete: if false;  // No client mutations after creation.
+    }
   }
 
   // Known read-only-on-server vault IDs. Keep this list tiny — every
@@ -155,5 +168,41 @@ service cloud.firestore {
         && d.viewCount == 0
         && (!d.keys().hasAny(['passwordProtected'])
             || d.passwordProtected is bool);
+  }
+
+  // File Send document invariants. The ciphertext itself lives in
+  // Cloud Storage; this document only holds metadata + counters.
+  // Expiry is hard-capped at 7 days (with a small clock-drift buffer).
+  // ciphertextSize must be positive and within the 10 MiB envelope so
+  // an over-large upload is caught even if storage rules drift.
+  function isValidFileSend(d) {
+    return d.keys().hasAll([
+            'storagePath', 'ciphertextSize', 'metadataCiphertext',
+            'expiresAt', 'maxViews', 'viewCount', 'deleteTokenHash',
+            'createdAt'
+          ])
+        && d.storagePath is string
+        && d.storagePath.matches('^fileSends/[A-Za-z0-9_-]{8,64}$')
+        && d.ciphertextSize is int
+        && d.ciphertextSize > 0
+        && d.ciphertextSize <= 11534336    // 10 MiB + 1 MiB headroom
+        && d.metadataCiphertext is bytes
+        && d.metadataCiphertext.size() > 0
+        && d.metadataCiphertext.size() <= 4096
+        && d.expiresAt is timestamp
+        && d.expiresAt > request.time
+        && d.expiresAt < request.time + duration.value(8, 'd')
+        && d.maxViews is int
+        && d.maxViews >= 1
+        && d.maxViews <= 10
+        && d.viewCount == 0
+        && d.deleteTokenHash is bytes
+        && d.deleteTokenHash.size() == 32
+        && (!d.keys().hasAny(['passwordProtected'])
+            || d.passwordProtected is bool)
+        && (!d.keys().hasAny(['passwordSalt'])
+            || (d.passwordSalt is bytes
+                && d.passwordSalt.size() >= 16
+                && d.passwordSalt.size() <= 64));
   }
 }

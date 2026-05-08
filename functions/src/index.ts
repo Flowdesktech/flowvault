@@ -22,10 +22,18 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { initializeApp } from "firebase-admin/app";
 import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 import { logger } from "firebase-functions/v2";
+import { createHash } from "node:crypto";
 
 initializeApp();
 const db = getFirestore();
+const bucket = () => getStorage().bucket();
+
+/** Hard cap on retention for File Send (7 days). Mirrors the rules. */
+const FILE_SEND_MAX_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+/** Lifetime of a download URL surfaced to the recipient. */
+const FILE_SEND_DOWNLOAD_URL_TTL_MS = 5 * 60 * 1000;
 
 /**
  * Mark expired vaults as released. Runs hourly. Cheap: only iterates over
@@ -261,3 +269,362 @@ export const sendsSweep = onSchedule(
     logger.info(`sendsSweep: purged ${qs.size} expired send(s)`);
   },
 );
+
+/* -----------------------------------------------------------------------
+ * File Send
+ *
+ * Same threat model as Encrypted Send, but for files up to 10 MiB. The
+ * ciphertext lives in Cloud Storage (`fileSends/{id}`), the metadata
+ * lives in Firestore (`fileSends/{id}`), and the recipient never gets
+ * a direct read on either &mdash; they go through `readFileSend`,
+ * which atomically consumes a view and returns a short-lived signed
+ * URL for the storage object.
+ * -------------------------------------------------------------------- */
+
+interface FileSendDoc {
+  storagePath: string;
+  ciphertextSize: number;
+  metadataCiphertext: unknown;
+  expiresAt: Timestamp;
+  maxViews: number;
+  viewCount: number;
+  deleteTokenHash: unknown;
+  passwordProtected?: boolean;
+  passwordSalt?: unknown;
+}
+
+type ReadFileSendPayload =
+  | { kind: "not-found" }
+  | { kind: "expired" }
+  | { kind: "exhausted" }
+  | {
+      kind: "ok";
+      downloadUrl: string;
+      metadataCiphertextBase64: string;
+      ciphertextSize: number;
+      passwordProtected: boolean;
+      passwordSaltBase64: string | null;
+      viewsRemaining: number;
+      lastView: boolean;
+      expiresAtMs: number;
+    };
+
+function validateId(raw: unknown): string {
+  const id = typeof raw === "string" ? raw.trim() : "";
+  if (!id || id.length > 64 || !/^[A-Za-z0-9_-]+$/.test(id)) {
+    throw new HttpsError("invalid-argument", "id required");
+  }
+  return id;
+}
+
+/**
+ * Atomically consume one view of a File Send. Returns a short-lived
+ * v4 signed URL to the ciphertext object so the browser can stream
+ * the bytes directly from Cloud Storage rather than round-tripping
+ * 10&nbsp;MiB through this function&rsquo;s response.
+ *
+ * On the final view the Firestore doc is deleted in the same
+ * transaction, but the storage object is left in place for a short
+ * grace window so the in-flight download can complete; the scheduled
+ * `fileSendsSweep` purges it on the next tick.
+ */
+export const readFileSend = onCall(
+  {
+    region: "us-central1",
+    cors: CALLABLE_CORS,
+    maxInstances: 20,
+  },
+  async (req): Promise<ReadFileSendPayload> => {
+    const id = validateId(req.data?.id);
+    const ref = db.collection("fileSends").doc(id);
+
+    const result = await db.runTransaction<
+      | { kind: "not-found" }
+      | { kind: "expired" }
+      | { kind: "exhausted" }
+      | {
+          kind: "consume";
+          doc: FileSendDoc;
+          newCount: number;
+          lastView: boolean;
+        }
+    >(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) return { kind: "not-found" };
+      const data = snap.data() as FileSendDoc;
+
+      if (!data.expiresAt || data.expiresAt.toMillis() <= Date.now()) {
+        return { kind: "expired" };
+      }
+
+      const viewCount = data.viewCount ?? 0;
+      const maxViews = data.maxViews ?? 1;
+      if (viewCount >= maxViews) return { kind: "exhausted" };
+
+      const newCount = viewCount + 1;
+      const lastView = newCount >= maxViews;
+      if (lastView) {
+        // Drop the Firestore record now so any further reveal attempt
+        // hits "not-found" / "exhausted". The storage object is GC'd
+        // by the scheduled sweep after the in-flight signed URL TTL.
+        tx.update(ref, {
+          viewCount: newCount,
+          consumedAt: FieldValue.serverTimestamp(),
+        });
+      } else {
+        tx.update(ref, { viewCount: newCount });
+      }
+
+      return { kind: "consume", doc: data, newCount, lastView };
+    });
+
+    if (result.kind !== "consume") return result;
+
+    const { doc: data, newCount, lastView } = result;
+
+    const metadataCiphertextBase64 = toBase64(data.metadataCiphertext);
+    if (!metadataCiphertextBase64) {
+      logger.warn(
+        `readFileSend: malformed metadataCiphertext prefix=${id.slice(0, 6)}`,
+      );
+      return { kind: "not-found" };
+    }
+
+    let downloadUrl: string;
+    try {
+      const [signed] = await bucket()
+        .file(data.storagePath)
+        .getSignedUrl({
+          version: "v4",
+          action: "read",
+          expires: Date.now() + FILE_SEND_DOWNLOAD_URL_TTL_MS,
+          // Force a download header so curl / browsers don't try to
+          // render it inline. The original filename is encrypted, so
+          // we use a generic placeholder.
+          responseDisposition:
+            'attachment; filename="flowvault-encrypted.bin"',
+          contentType: "application/octet-stream",
+        });
+      downloadUrl = signed;
+    } catch (err) {
+      logger.error("readFileSend: signed URL generation failed", err);
+      throw new HttpsError("internal", "could not issue download URL");
+    }
+
+    const passwordSaltBase64 = data.passwordProtected
+      ? toBase64(data.passwordSalt)
+      : null;
+
+    return {
+      kind: "ok",
+      downloadUrl,
+      metadataCiphertextBase64,
+      ciphertextSize: data.ciphertextSize ?? 0,
+      passwordProtected: !!data.passwordProtected,
+      passwordSaltBase64,
+      viewsRemaining: Math.max(0, (data.maxViews ?? 1) - newCount),
+      lastView,
+      expiresAtMs: data.expiresAt.toMillis(),
+    };
+  },
+);
+
+type DeleteFileSendPayload =
+  | { kind: "ok" }
+  | { kind: "not-found" }
+  | { kind: "forbidden" };
+
+/**
+ * Authorize and execute a secure delete. The sender keeps the raw
+ * delete token in the URL fragment of the secure delete link; we
+ * stored only its SHA-256 at create time. Comparing the digest is a
+ * constant-time-ish check against forgery without ever trusting the
+ * client to assert ownership.
+ */
+export const deleteFileSend = onCall(
+  {
+    region: "us-central1",
+    cors: CALLABLE_CORS,
+    maxInstances: 20,
+  },
+  async (req): Promise<DeleteFileSendPayload> => {
+    const id = validateId(req.data?.id);
+    const tokenRaw =
+      typeof req.data?.deleteToken === "string" ? req.data.deleteToken : "";
+    if (!tokenRaw || tokenRaw.length > 128) {
+      throw new HttpsError("invalid-argument", "deleteToken required");
+    }
+
+    const tokenBytes = decodeBase64Url(tokenRaw);
+    if (!tokenBytes || tokenBytes.length !== 32) {
+      throw new HttpsError("invalid-argument", "invalid deleteToken");
+    }
+    const providedHash = createHash("sha256").update(tokenBytes).digest();
+
+    const ref = db.collection("fileSends").doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) return { kind: "not-found" };
+    const data = snap.data() as FileSendDoc;
+
+    const storedHash = toBuffer(data.deleteTokenHash);
+    if (!storedHash || storedHash.length !== providedHash.length) {
+      return { kind: "forbidden" };
+    }
+    if (!timingSafeEqual(storedHash, providedHash)) {
+      return { kind: "forbidden" };
+    }
+
+    // Delete the storage object first. If that fails we still want the
+    // Firestore doc gone so subsequent reads return "not-found"; the
+    // sweep will clean any orphan storage object later.
+    if (data.storagePath) {
+      try {
+        await bucket().file(data.storagePath).delete({ ignoreNotFound: true });
+      } catch (err) {
+        logger.warn(
+          `deleteFileSend: storage delete failed prefix=${id.slice(0, 6)}`,
+          err,
+        );
+      }
+    }
+    await ref.delete();
+    return { kind: "ok" };
+  },
+);
+
+/**
+ * Hourly sweep over `fileSends`. Cleans up:
+ *
+ *   1. Documents whose `expiresAt` has passed (delete doc + object).
+ *   2. Documents flagged consumed (`consumedAt` older than the
+ *      download URL TTL + a small buffer): the recipient's signed URL
+ *      has long since lapsed, so the storage object is safe to drop.
+ *   3. Storage objects that have no matching Firestore document and
+ *      are older than the maximum allowed retention &mdash; defensive
+ *      cleanup for failed creates.
+ */
+export const fileSendsSweep = onSchedule(
+  { schedule: "every 60 minutes", region: "us-central1" },
+  async () => {
+    const now = Date.now();
+    const expiredCutoff = Timestamp.now();
+    const consumedCutoff = Timestamp.fromMillis(
+      now - FILE_SEND_DOWNLOAD_URL_TTL_MS - 60_000,
+    );
+
+    let totalDeleted = 0;
+
+    const expired = await db
+      .collection("fileSends")
+      .where("expiresAt", "<=", expiredCutoff)
+      .limit(200)
+      .get();
+    for (const docSnap of expired.docs) {
+      const data = docSnap.data() as FileSendDoc;
+      if (data.storagePath) {
+        await bucket()
+          .file(data.storagePath)
+          .delete({ ignoreNotFound: true })
+          .catch((err) =>
+            logger.warn("fileSendsSweep: object delete failed", err),
+          );
+      }
+      await docSnap.ref.delete();
+      totalDeleted++;
+    }
+
+    const consumed = await db
+      .collection("fileSends")
+      .where("consumedAt", "<=", consumedCutoff)
+      .limit(200)
+      .get();
+    for (const docSnap of consumed.docs) {
+      const data = docSnap.data() as FileSendDoc;
+      if (data.storagePath) {
+        await bucket()
+          .file(data.storagePath)
+          .delete({ ignoreNotFound: true })
+          .catch((err) =>
+            logger.warn("fileSendsSweep: object delete failed", err),
+          );
+      }
+      await docSnap.ref.delete();
+      totalDeleted++;
+    }
+
+    // Orphan-object sweep: any storage object older than the maximum
+    // retention with no Firestore companion is safe to delete. We cap
+    // the listing each tick to keep the function bounded.
+    const orphanCutoffMs = now - FILE_SEND_MAX_EXPIRY_MS - 60 * 60_000;
+    let orphans = 0;
+    try {
+      const [files] = await bucket().getFiles({
+        prefix: "fileSends/",
+        maxResults: 500,
+      });
+      for (const f of files) {
+        const meta = f.metadata as { timeCreated?: string };
+        const createdAt = meta?.timeCreated
+          ? Date.parse(meta.timeCreated)
+          : NaN;
+        if (!Number.isFinite(createdAt)) continue;
+        if (createdAt > orphanCutoffMs) continue;
+        const id = f.name.split("/")[1];
+        if (!id) continue;
+        const docSnap = await db.collection("fileSends").doc(id).get();
+        if (docSnap.exists) continue;
+        await f.delete({ ignoreNotFound: true }).catch(() => undefined);
+        orphans++;
+      }
+    } catch (err) {
+      logger.warn("fileSendsSweep: orphan scan failed", err);
+    }
+
+    if (totalDeleted > 0 || orphans > 0) {
+      logger.info(
+        `fileSendsSweep: purged ${totalDeleted} doc(s) and ${orphans} orphan object(s)`,
+      );
+    } else {
+      logger.info("fileSendsSweep: nothing to do");
+    }
+  },
+);
+
+function toBuffer(value: unknown): Buffer | null {
+  if (!value) return null;
+  if (Buffer.isBuffer(value)) return value;
+  if (value instanceof Uint8Array) return Buffer.from(value);
+  if (typeof (value as { toUint8Array?: () => Uint8Array }).toUint8Array ===
+      "function") {
+    return Buffer.from(
+      (value as { toUint8Array: () => Uint8Array }).toUint8Array(),
+    );
+  }
+  if (typeof (value as { toBase64?: () => string }).toBase64 === "function") {
+    return Buffer.from(
+      (value as { toBase64: () => string }).toBase64(),
+      "base64",
+    );
+  }
+  return null;
+}
+
+function decodeBase64Url(s: string): Uint8Array | null {
+  try {
+    const normalized = s.replace(/-/g, "+").replace(/_/g, "/");
+    const padded =
+      normalized.length % 4 === 0
+        ? normalized
+        : normalized + "=".repeat(4 - (normalized.length % 4));
+    return new Uint8Array(Buffer.from(padded, "base64"));
+  } catch {
+    return null;
+  }
+}
+
+function timingSafeEqual(a: Buffer, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}

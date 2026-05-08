@@ -59,7 +59,7 @@ const HOMEPAGE_JSON_LD = {
       url: APP_URL,
       name: "Flowvault",
       description:
-        "Zero-knowledge encrypted notepad with plausible deniability, a trusted handover to a beneficiary, drand-backed time-locked notes, self-destructing Encrypted Send, Bring-Your-Own-Storage local vaults (.flowvault file), and .fvault encrypted backup & restore.",
+        "Zero-knowledge encrypted notepad with plausible deniability, a trusted handover to a beneficiary, drand-backed time-locked notes, self-destructing Encrypted Send for notes and Encrypted File Send for files (up to 10 MiB) with a secure delete link, Bring-Your-Own-Storage local vaults (.flowvault file), and .fvault encrypted backup & restore.",
       publisher: { "@id": `${APP_URL}/#organization` },
       inLanguage: "en",
     },
@@ -70,7 +70,7 @@ const HOMEPAGE_JSON_LD = {
       operatingSystem: "Web",
       url: APP_URL,
       description:
-        "An open-source zero-knowledge encrypted online notepad. Argon2id + AES-256-GCM, plausible-deniability hidden volumes, multi-notebook tabs per password, a client-wrapped trusted handover that releases the vault to a beneficiary if you stop checking in, drand-backed time-locked notes, self-destructing Encrypted Send, Bring-Your-Own-Storage local vaults stored as a single .flowvault file on your disk, and a .fvault encrypted backup format that round-trips every slot without decrypting anything server-side.",
+        "An open-source zero-knowledge encrypted online notepad. Argon2id + AES-256-GCM, plausible-deniability hidden volumes, multi-notebook tabs per password, a client-wrapped trusted handover that releases the vault to a beneficiary if you stop checking in, drand-backed time-locked notes, self-destructing Encrypted Send for notes and Encrypted File Send for files (up to 10 MiB) with a secure delete link, Bring-Your-Own-Storage local vaults stored as a single .flowvault file on your disk, and a .fvault encrypted backup format that round-trips every slot without decrypting anything server-side.",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       featureList: [
         "Client-side Argon2id key derivation",
@@ -80,6 +80,7 @@ const HOMEPAGE_JSON_LD = {
         "Client-wrapped trusted handover that releases to a beneficiary if you stop checking in",
         "Drand-backed time-locked notes",
         "Encrypted Send: self-destructing, view-capped one-time notes",
+        "Encrypted File Send: self-destructing, view-capped file uploads up to 10 MiB with a secure delete link",
         "Bring Your Own Storage: local-file vaults stored as a single .flowvault file on your device (File System Access API)",
         "Cmd+K command-palette search across unlocked notebooks (in-memory only; no persistent index, no server round-trip)",
         "Zero-knowledge .fvault backup and restore (migrate or self-host without decrypting server-side)",
@@ -370,6 +371,22 @@ export default function HomePage() {
             }
             href="/send/new"
             ctaLabel="Send a secret"
+          />
+          <Feature
+            icon={<FileLock2 size={18} />}
+            title="Encrypted File Send"
+            body={
+              <>
+                Drop a file (up to 10 MiB), pick how long it lives (max
+                7 days) and how many times it can be downloaded, and
+                share the link. AES-256-GCM in your browser, key in the
+                URL fragment, ciphertext only on our storage. You also
+                get a <strong>secure delete link</strong> to destroy
+                the upload yourself at any moment.
+              </>
+            }
+            href="/file/new"
+            ctaLabel="Send a file"
           />
           <Feature
             icon={<Download size={18} />}

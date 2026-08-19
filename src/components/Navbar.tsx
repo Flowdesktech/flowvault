@@ -2,18 +2,17 @@ import Link from "next/link";
 import {
   Vault,
   Heart,
-  Briefcase,
   Clock,
   Send,
   BookOpen,
   FileLock2,
 } from "lucide-react";
-import { CONTACT_EMAIL, DONATE_PATH, GITHUB_URL } from "@/lib/config";
+import { DONATE_PATH, GITHUB_URL } from "@/lib/config";
 
 export function Navbar() {
   return (
     <>
-      <HireBanner />
+      <DonateBanner />
       <header className="sticky top-0 z-20 border-b border-border/60 bg-background/70 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
           <Link
@@ -90,37 +89,26 @@ export function Navbar() {
 }
 
 /**
- * Thin site-wide banner above the main header. Appears on every page
- * (not just the homepage), so traffic from /send, /timelock, /blog,
- * etc. also gets a hire signal. Leads with the FlowCrypt credential
- * because it's the strongest trust anchor for the exact buyer segment
- * this page is trying to attract (privacy / E2EE / crypto).
+ * Thin site-wide banner above the main header. Flowvault has no ads,
+ * accounts, or paid tier — hosting for thousands of vaults and
+ * time-locks is covered by donations. Shown on every page (not just
+ * home) so /send, /timelock, /blog, and vault URLs carry the same ask.
  */
-function HireBanner() {
+function DonateBanner() {
   return (
-    <div className="border-b border-border/60 bg-background-elev/80 text-[11px] sm:text-xs">
+    <div className="border-b border-accent/25 bg-accent/10 text-[11px] sm:text-xs">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-1.5 text-muted">
-        <Briefcase size={12} className="text-accent" />
+        <Heart size={12} className="text-accent" />
         <span>
-          Built by <strong className="text-foreground">Flowdesk</strong>{" "}
-          &mdash; ex‑FlowCrypt (iOS + Chrome Ext.). Privacy apps, E2EE
-          systems, native &amp; mobile.
+          Flowvault is entirely free. Thousands of vaults and time-locks
+          are already live &mdash; donations keep the servers running.
         </span>
         <Link
-          href="/#hire"
-          className="font-medium text-foreground underline-offset-4 hover:underline"
+          href={DONATE_PATH}
+          className="font-medium text-accent underline-offset-4 hover:underline"
         >
-          See work
+          Donate
         </Link>
-        <span aria-hidden className="text-muted/60">·</span>
-        <a
-          href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(
-            "Flowdesk — project inquiry (via Flowvault)",
-          )}`}
-          className="font-medium text-foreground underline-offset-4 hover:underline"
-        >
-          {CONTACT_EMAIL}
-        </a>
       </div>
     </div>
   );

@@ -36,7 +36,7 @@ export const GITHUB_URL = envOr(
 
 /**
  * Public contact address for hire / business-idea / partnership inquiries.
- * Shown in the top banner and on the donate / about pages.
+ * Shown on the homepage hire section and on the donate / about pages.
  */
 export const CONTACT_EMAIL = envOr(
   process.env.NEXT_PUBLIC_CONTACT_EMAIL,

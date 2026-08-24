@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
-import { SupportDialog } from "@/components/SupportDialog";
 import { SendViewer } from "@/components/send/SendViewer";
 
 export const metadata: Metadata = {
@@ -19,7 +18,6 @@ export default async function SendViewPage({ params }: Params) {
   return (
     <>
       <Navbar />
-      <SupportDialog />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-12">
         <SendViewer id={id} />
       </main>

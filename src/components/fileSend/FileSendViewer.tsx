@@ -14,6 +14,7 @@ import {
   Unlock,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { SupportDialog } from "@/components/SupportDialog";
 import {
   type FileMetadata,
   openContent,
@@ -318,7 +319,12 @@ export function FileSendViewer({ id }: { id: string }) {
     );
   }
 
-  return <ReadyView phase={phase} />;
+  return (
+    <>
+      <SupportDialog />
+      <ReadyView phase={phase} />
+    </>
+  );
 }
 
 function GateView({ onReveal }: { onReveal: () => void }) {

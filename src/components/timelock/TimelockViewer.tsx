@@ -23,6 +23,7 @@ import {
 } from "@/lib/timelock/tlock";
 import { useNow } from "@/lib/utils/useNow";
 import { Button } from "@/components/ui/Button";
+import { SupportDialog } from "@/components/SupportDialog";
 
 type Phase =
   | { kind: "loading" }
@@ -223,7 +224,12 @@ export function TimelockViewer({ id }: { id: string }) {
     );
   }
 
-  return <UnlockedView plaintext={phase.plaintext} capsule={phase.capsule} />;
+  return (
+    <>
+      <SupportDialog />
+      <UnlockedView plaintext={phase.plaintext} capsule={phase.capsule} />
+    </>
+  );
 }
 
 function LockedView({

@@ -14,6 +14,7 @@ import {
   Unlock,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { SupportDialog } from "@/components/SupportDialog";
 import { open, type OpenOutcome } from "@/lib/send/crypto";
 import { readSend } from "@/lib/firebase/sends";
 
@@ -251,7 +252,12 @@ export function SendViewer({ id }: { id: string }) {
     );
   }
 
-  return <PlaintextView plaintext={phase.plaintext} lastView={phase.lastView} />;
+  return (
+    <>
+      <SupportDialog />
+      <PlaintextView plaintext={phase.plaintext} lastView={phase.lastView} />
+    </>
+  );
 }
 
 function GateView({ onReveal }: { onReveal: () => void }) {

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { PasswordGate } from "./PasswordGate";
 import { ReleasedGate } from "./ReleasedGate";
 import { Editor } from "./Editor";
+import { SupportDialog } from "./SupportDialog";
 import { useVault } from "@/lib/store/vault";
 import { tryOpenVault, createVault, type OpenResult } from "@/lib/vault/service";
 import { unlockReleased } from "@/lib/vault/deadman";
@@ -198,7 +199,12 @@ export function VaultView({ slug }: { slug: string }) {
   }
 
   if (!open) return null;
-  return <Editor />;
+  return (
+    <>
+      <SupportDialog />
+      <Editor />
+    </>
+  );
 }
 
 function applyOpen(

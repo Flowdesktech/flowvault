@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { VaultView } from "@/components/VaultView";
 import { Navbar } from "@/components/Navbar";
+import { SupportDialog } from "@/components/SupportDialog";
 import { notFound } from "next/navigation";
 import { isValidSlug, normalizeSlug } from "@/lib/crypto/siteId";
 
@@ -30,6 +31,7 @@ export default async function SitePage({ params }: Params) {
   return (
     <>
       <Navbar />
+      <SupportDialog />
       <VaultView slug={slug} />
     </>
   );

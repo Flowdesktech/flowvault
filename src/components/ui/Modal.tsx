@@ -11,6 +11,8 @@ interface Props {
   description?: string;
   children: React.ReactNode;
   className?: string;
+  closeOnBackdrop?: boolean;
+  closeOnEscape?: boolean;
 }
 
 export function Modal({
@@ -20,17 +22,19 @@ export function Modal({
   description,
   children,
   className,
+  closeOnBackdrop = true,
+  closeOnEscape = true,
 }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !closeOnEscape) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [open, onClose]);
+  }, [closeOnEscape, open, onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -51,11 +55,18 @@ export function Modal({
       aria-label={title}
       className="fixed inset-0 z-50 flex items-center justify-center px-4"
     >
-      <button
-        aria-label="Close"
-        onClick={onClose}
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-      />
+      {closeOnBackdrop ? (
+        <button
+          aria-label="Close"
+          onClick={onClose}
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        />
+      ) : (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        />
+      )}
       <div
         ref={panelRef}
         className={cn(

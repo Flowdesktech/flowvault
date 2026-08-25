@@ -15,7 +15,7 @@ const REMINDER_INTERVAL_MS = 3 * 24 * 60 * 60 * 1_000; // 3 days
 /**
  * A deliberately infrequent, non-blocking support request for people
  * opening Flowvault resources. Dismissing it suppresses the prompt for
- * one day across vault, time-lock, note-send, and file-send pages.
+ * three days across vault, time-lock, note-send, and file-send pages.
  */
 export function SupportDialog() {
   const [open, setOpen] = useState(false);
@@ -53,6 +53,8 @@ export function SupportDialog() {
       onClose={close}
       title="A small note from Flowvault’s creator"
       description="Not a paywall—just an honest request for support."
+      closeOnBackdrop={false}
+      closeOnEscape={false}
     >
       <div className="space-y-4 text-sm leading-relaxed text-muted">
         <p>
@@ -78,7 +80,6 @@ export function SupportDialog() {
             href={GITHUB_URL}
             target="_blank"
             rel="noreferrer noopener"
-            onClick={close}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-accent px-3 text-sm font-medium text-accent-foreground transition hover:brightness-110"
           >
             <Star size={15} /> Star on GitHub
@@ -87,7 +88,6 @@ export function SupportDialog() {
             href={hireUrl}
             target="_blank"
             rel="noreferrer"
-            onClick={close}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-background-elev-2 px-3 text-sm font-medium text-foreground transition hover:bg-border"
           >
             <Briefcase size={15} /> Hire me
@@ -96,7 +96,6 @@ export function SupportDialog() {
             href={DONATE_PATH}
             target="_blank"
             rel="noreferrer"
-            onClick={close}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-accent/30 bg-accent/10 px-3 text-sm font-medium text-accent transition hover:bg-accent/20"
           >
             <Heart size={15} /> Donate
